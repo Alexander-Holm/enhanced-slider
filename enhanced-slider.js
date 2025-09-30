@@ -382,8 +382,7 @@ class ButtonIntervalWrapper{
         // setTiemout argument needs to be an arrow function
         this.timerId = setTimeout(() => this.startInterval(event), interval)
     }
-    stopInterval(event){
-        event.preventDefault()
+    stopInterval(){
         clearTimeout(this.timerId)
         this.intervalIndex = 0
     }
