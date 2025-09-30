@@ -296,8 +296,8 @@ class EnhancedSlider extends HTMLElement{
             display: flex;
             justify-content: space-between;
             align-items: start;
-            padding-inline: var(--labels-horizontal, 6px);
-            margin-top: calc(-6px + var(--labels-vertical, -0px))
+            margin-inline: calc(8px + var(--labels-horizontal, 0px));
+            margin-top: calc(-6px + var(--labels-vertical, 0px))
         }`)
         style.sheet.insertRule(`:host(:disabled) > .labels {
             opacity: 50%;
