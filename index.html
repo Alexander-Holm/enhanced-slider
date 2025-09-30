@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="enhanced-slider.js" type="module" ></script>
+    <title>enhanced-slider demo</title>
+    <style>
+        html{ 
+            color-scheme: light dark; 
+            font-family: sans-serif;
+        }
+        body{
+            padding-block: 80px;
+            padding-inline: 10px;
+            margin: 0;
+        }
+        h1, h2{
+            text-align: center; 
+            margin: 0;
+        }
+        h1{ font-size: 2.5rem; }
+        h2{ font-size: 1.8rem; }
+        label{
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        code{ text-wrap: nowrap;}
+
+        form{
+            border: 1px solid hsla(0, 0%, 50%, 30%);
+            padding: 20px;
+            max-width: 36rem;
+            margin-inline: auto;
+            margin-block: 80px;
+            & > h2{ margin-bottom: 30px; }
+            & > #component-id{ 
+                margin-block: 60px; 
+                margin-inline: auto;
+            }
+            & > .buttons{
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+            }
+        }        
+
+        #more-examples{
+            text-align: center;
+            margin-inline: auto;
+            max-width: 26rem;
+            & > div{ 
+                padding-block: 40px;
+                border-radius: 2px;
+            }
+            & enhanced-slider{
+                max-width: 18rem;
+                margin-inline: auto;
+            }
+        }
+        #custom-buttons{
+            column-gap: 6px;
+            accent-color: #ff2529;
+            &::part(button){ color: white; }
+            &::part(button):enabled:is(:hover, :focus-visible){ box-shadow: 0 0 10px 2px #ff3efb}
+            &::part(button):enabled:active{ box-shadow: 0 0 10px 4px #ff3efb}
+            &::part(decrement){ background-image: linear-gradient(to left, #ff2424, #f93aff); }
+            &::part(increment){ background-image: linear-gradient(to right, #ff2424, #f93aff); }
+        }
+        /* Invert preference */
+        .dark-mode{
+            @media (prefers-color-scheme: light){
+                color-scheme: dark;
+                background-color: hsl(240, 15%, 10%);
+                color: hsl(0, 0%, 90%);
+            }
+            @media (prefers-color-scheme: dark){
+                color-scheme: light;
+                background-color: white;
+                color: black;
+            }
+        }
+    </style>
+    <script>
+        function onSubmit(e){
+            e.preventDefault()
+            const formData = new FormData(e.target)
+            const value = formData.get("component-name")
+            alert(`Value: ${value}`)
+        }
+    </script>
+</head>
+<body>
+    <h1>enhanced-slider demo</h1>
+    <form onsubmit="onSubmit(event)">
+        <h2>Form</h2>
+        <label for="component-id">Label</label>
+        <span>Clicking an associated label does not focus the component like it would for other <code>&lt;input></code> elements, but the individual controls can still be focused by tabbing.</span>
+        <enhanced-slider name="component-name" id="component-id"></enhanced-slider>
+        <p>The current value is submitted with the form as long as the component has a <code>name</code> attribute.</p>
+        <div class="buttons">
+            <button type="submit">Submit</button>
+            <button type="reset">Reset</button>
+        </div>
+    </form>
+    <section id="more-examples">
+        <h2>More examples</h2>
+        <div>
+            <label for="disabled">Disabled</label>
+            <enhanced-slider id="disabled" disabled></enhanced-slider>
+        </div>
+        <div class="dark-mode">
+            <label for="dark-mode">Dark & light mode</label>
+            <enhanced-slider id="dark-mode"></enhanced-slider>
+        </div>
+        <div>
+            <label for="custom-buttons">Custom buttons</label>
+            <enhanced-slider id="custom-buttons">
+                <span slot="decrement">-</span>
+                <span slot="increment">+</span>
+            </enhanced-slider>
+        </div>
+        <div>
+            <label for="attributes">Different step, min, and max</label>
+            <enhanced-slider id="attributes" step="2.5" min="-10" max="25"></enhanced-slider>
+        </div>
+    </section>
+</body>
+</html>
