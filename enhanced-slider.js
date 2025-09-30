@@ -360,14 +360,16 @@ class ButtonIntervalWrapper{
         this.button = htmlButton
         this.onInterval = onInterval
         // Have to use bind, otherwise "this" inside the functions will refer to the clicked button
-        htmlButton.onmouseup = htmlButton.onmouseleave = htmlButton.onkeyup = this.stopInterval.bind(this)
-        htmlButton.onmousedown = this.startInterval.bind(this)
+        htmlButton.onmouseup = htmlButton.onmouseleave = htmlButton.ontouchend = htmlButton.ontouchcancel = htmlButton.onkeyup = this.stopInterval.bind(this)
+        htmlButton.onmousedown = htmlButton.ontouchstart = this.startInterval.bind(this)
         htmlButton.onkeydown = (e) => {
             if(e.key === "Enter" && e.repeat === false)
                 this.startInterval()
         }
     }
-    startInterval(){
+    // preventDefault() is required for button holding to work correctly on mobile
+    startInterval(event){
+        event.preventDefault()
         if(this.button.disabled){
             this.stopInterval()
             return
@@ -378,9 +380,10 @@ class ButtonIntervalWrapper{
             interval = this.intervals[this.intervalIndex++]
         else interval = 50
         // setTiemout argument needs to be an arrow function
-        this.timerId = setTimeout(() => this.startInterval(), interval)
+        this.timerId = setTimeout(() => this.startInterval(event), interval)
     }
-    stopInterval(){
+    stopInterval(event){
+        event.preventDefault()
         clearTimeout(this.timerId)
         this.intervalIndex = 0
     }
