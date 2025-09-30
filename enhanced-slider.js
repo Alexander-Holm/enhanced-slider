@@ -1,14 +1,22 @@
 export { EnhancedSlider }
 
 class EnhancedSlider extends HTMLElement{
-    static get tagName(){ return "enhanced-slider" }
     static formAssociated = true
+    // HTML elements
+     children = {
+        slider: undefined, inputBox: undefined,
+        buttons: { decrement: undefined, increment: undefined },
+        labels: { min: undefined, max: undefined }
+    }
     constructor(){
         super()
         this.connected = false
         this.internals = this.attachInternals()
         this.attachShadow({mode: "open"})
     }
+
+    // These functions ending with callback are custom element lifecycle callbacks.
+    // They are not called from in here and needs to have these exact names.
     connectedCallback(){
         this.createHTML()
         this.readAttributes()
@@ -17,7 +25,6 @@ class EnhancedSlider extends HTMLElement{
     }
     disconnectedCallback(){ this.connected = false }
     formResetCallback(){ this.value = this.defaultValue }
-
     static observedAttributes = ["disabled", "value", "min", "max", "step"]
     attributeChangedCallback(name, oldValue, newValue){
         // attributeChangedCallback() will be called before connectedCallback(),
@@ -50,7 +57,7 @@ class EnhancedSlider extends HTMLElement{
     #value
     get value(){ return this.#value}
     set value(newValue){
-        const { slider, inputBox, buttons } = this.children
+        const { slider, inputBox } = this.children
 
         if(this.#isNotNumber(newValue)){
             inputBox.value = this.#value
@@ -138,7 +145,6 @@ class EnhancedSlider extends HTMLElement{
         const step = Number(this.#step)
         return { min, max, value, step }
     }
-
     // isNaN() alone does not work for checking if a variable is not a number.
     // null, "", [] will be interpreted as numbers and return false!
     // See: https://stackoverflow.com/a/68821383/25594533
@@ -176,11 +182,7 @@ class EnhancedSlider extends HTMLElement{
         else if(!this.disabled) increment.disabled = false
     }
 
-    children = {
-        slider: undefined, inputBox: undefined,
-        buttons: { decrement: undefined, increment: undefined },
-        labels: { min: undefined, max: undefined }
-    }
+   
 
     createHTML(){
         const slider = this.children.slider = document.createElement("input")
@@ -411,4 +413,4 @@ const icons = {
     `,
 }
 
-customElements.define(EnhancedSlider.tagName, EnhancedSlider)
+customElements.define("enhanced-slider", EnhancedSlider)
