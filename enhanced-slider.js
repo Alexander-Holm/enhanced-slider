@@ -267,6 +267,9 @@ class EnhancedSlider extends HTMLElement{
             box-sizing: content-box;
             margin-block: 10px;
         }`)        
+        style.sheet.insertRule(`:host([hidden]) {
+            display: none;
+        }`)
         style.sheet.insertRule(`input[type = "range"] {
             z-index: 3;
             grid-row: 1;
