@@ -268,10 +268,19 @@ class EnhancedSlider extends HTMLElement{
             max-width: 24rem;
             box-sizing: content-box;
             margin-block: 10px;
+            color: light-dark(black, white);
         }`)        
         style.sheet.insertRule(`:host([hidden]) {
             display: none;
         }`)
+        style.sheet.insertRule(`
+            input[type = "text"]:enabled, 
+            button:enabled,
+            :host:enabled .labels 
+            {
+                color: inherit;
+            }
+        `)
         style.sheet.insertRule(`input[type = "range"] {
             z-index: 3;
             grid-row: 1;
@@ -302,10 +311,12 @@ class EnhancedSlider extends HTMLElement{
             justify-content: space-between;
             align-items: start;
             margin-inline: calc(8px + var(--labels-horizontal, 0px));
-            margin-top: calc(-6px + var(--labels-vertical, 0px))
+            margin-top: calc(-6px + var(--labels-vertical, 0px));
+            opacity: 70%;
         }`)
         style.sheet.insertRule(`:host(:disabled) > .labels {
-            opacity: 50%;
+            color: gray;
+            opacity: 0.5;
         }`)
         // width:0 makes the ticks position perfectly mirrored
         style.sheet.insertRule(`.label {
@@ -315,7 +326,6 @@ class EnhancedSlider extends HTMLElement{
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: gray;
             font-size: 0.9em;
             font-family: monospace;
         }`)
@@ -337,7 +347,6 @@ class EnhancedSlider extends HTMLElement{
             border: 0px;
             border-radius: 4px;
             background-color: transparent;
-            color: light-dark(black, white);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -346,7 +355,7 @@ class EnhancedSlider extends HTMLElement{
                 background-color: revert;
             }
             &:disabled {
-                opacity: 0.2;
+                opacity: 0.4;
             }
         }`)
     }
