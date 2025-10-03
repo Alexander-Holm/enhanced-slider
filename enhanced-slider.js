@@ -293,7 +293,7 @@ class EnhancedSlider extends HTMLElement{
         style.sheet.insertRule(`input[type = "text"] {
             z-index: 2;
             text-align: center;
-            font-size: 0.9em;
+            font-size: 0.9rem;
             padding: 2px;
             box-sizing: content-box;
             border: 1px solid;
@@ -326,7 +326,7 @@ class EnhancedSlider extends HTMLElement{
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 0.9em;
+            font-size: 0.9rem;
             font-family: monospace;
         }`)
         style.sheet.insertRule(`.label > .tick {
