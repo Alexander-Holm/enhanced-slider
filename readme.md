@@ -2,6 +2,8 @@
 
 A web component that combines the functionality of `<input type="range">` and `<input type="number">`.
 
+<a href="https://alexander-holm.github.io/enhanced-slider" target="_blank">Try it on the demo page</a>
+
 [Try it on the demo page](https://alexander-holm.github.io/enhanced-slider/)
 
 ## Attributes and properties
