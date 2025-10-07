@@ -273,14 +273,6 @@ class EnhancedSlider extends HTMLElement{
         style.sheet.insertRule(`:host([hidden]) {
             display: none;
         }`)
-        style.sheet.insertRule(`
-            input[type = "text"]:enabled, 
-            button:enabled,
-            :host:enabled .labels 
-            {
-                color: inherit;
-            }
-        `)
         style.sheet.insertRule(`input[type = "range"] {
             z-index: 3;
             grid-row: 1;
@@ -299,6 +291,7 @@ class EnhancedSlider extends HTMLElement{
             border: 1px solid;
             border-color: light-dark(#bbb, #555);
             border-radius: 4px;
+            color: inherit;
             grid-row: 2;
             grid-column: 2;
             margin-inline: auto;
@@ -311,12 +304,11 @@ class EnhancedSlider extends HTMLElement{
             justify-content: space-between;
             align-items: start;
             margin-inline: calc(8px + var(--labels-horizontal, 0px));
-            margin-top: calc(-6px + var(--labels-vertical, 0px));
-            opacity: 70%;
+            margin-top: calc(-4px + var(--labels-vertical, 0px));
         }`)
         style.sheet.insertRule(`:host(:disabled) > .labels {
-            color: gray;
             opacity: 0.5;
+            color: gray;
         }`)
         // width:0 makes the ticks position perfectly mirrored
         style.sheet.insertRule(`.label {
@@ -326,8 +318,9 @@ class EnhancedSlider extends HTMLElement{
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-family: monospace;
+            color: gray;
             & > .tick {
                 width: 1px;
                 height: 4px;
@@ -352,6 +345,7 @@ class EnhancedSlider extends HTMLElement{
             border: 0px;
             border-radius: 4px;
             background-color: transparent;
+            color: inherit;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -361,7 +355,10 @@ class EnhancedSlider extends HTMLElement{
             -webkit-user-select: none;
             -webkit-touch-callout: none;
             &:enabled:is(:hover, :active) { background-color: revert; }
-            &:disabled { opacity: 0.4; }
+            &:disabled { 
+                opacity: 0.4; 
+                color: gray; 
+            }
         }`)
     }
 }
