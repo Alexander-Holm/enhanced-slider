@@ -328,13 +328,18 @@ class EnhancedSlider extends HTMLElement{
             align-items: center;
             font-size: 0.9rem;
             font-family: monospace;
+            & > .tick {
+                width: 1px;
+                height: 4px;
+                background-color: currentColor;
+                margin-bottom: 0px;
+            }
+            & > .value {
+                user-select: none;
+                -webkit-user-select: none;
+            }
         }`)
-        style.sheet.insertRule(`.label > .tick {
-            width: 1px;
-            height: 4px;
-            background-color: currentColor;
-            margin-bottom: 0px;
-        }`)
+        // Needs the webkit specific properties!
         style.sheet.insertRule(`button {
             --size: 1.25em;
             font-size: 1rem;
@@ -351,18 +356,19 @@ class EnhancedSlider extends HTMLElement{
             justify-content: center;
             align-items: center;
             grid-row: 1;
-            &:enabled:hover {
-                background-color: revert;
-            }
-            &:disabled {
-                opacity: 0.4;
-            }
+            user-select: none;
+            touch-action: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            &:enabled:is(:hover, :active) { background-color: revert; }
+            &:disabled { opacity: 0.4; }
         }`)
     }
 }
 
 class ButtonIntervalWrapper{
-    intervals = [150, 140, 130, 100, 80, 60]
+    intervals = [150, 140, 130, 100, 80, 60, 50]
+    intervalsCount = this.intervals.length
     intervalIndex = 0
     onInterval = null
     timerId = null
@@ -370,31 +376,42 @@ class ButtonIntervalWrapper{
     constructor(htmlButton, onInterval){
         this.button = htmlButton
         this.onInterval = onInterval
-        // Have to use bind, otherwise "this" inside the functions will refer to the clicked button
-        htmlButton.onmouseup = htmlButton.onmouseleave = htmlButton.ontouchend = htmlButton.ontouchcancel = htmlButton.onkeyup = this.stopInterval.bind(this)
-        htmlButton.onmousedown = htmlButton.ontouchstart = this.startInterval.bind(this)
-        htmlButton.onkeydown = (e) => {
-            if(e.key === "Enter" && e.repeat === false)
-                this.startInterval()
+        // Have to use bind, otherwise "this" inside the function will refer to the clicked button.
+        // Arrow functions also work.
+        htmlButton.onpointerup = htmlButton.onpointerleave = htmlButton.onpointercancel = this.stopInterval.bind(this)
+        // Could check for "Enter" on keyup but who cares
+        htmlButton.onblur = htmlButton.onkeyup =this.stopInterval.bind(this)
+        htmlButton.onpointerdown = (event) => {
+            // If a new press happens while the timer is running it should restart.
+            // This makes several fast clicks work correctly.
+            if(this.timerId !== null) 
+                this.stopInterval()
+            this.startInterval(event)
+        }
+        htmlButton.onkeydown = (event) => {
+            if(event.key === "Enter" && event.repeat === false){
+                if(this.timerId !== null)
+                    this.stopInterval()
+                this.startInterval(event)
+            }
         }
     }
-    // preventDefault() is required for button holding to work correctly on mobile
     startInterval(event){
-        event.preventDefault()
         if(this.button.disabled){
             this.stopInterval()
             return
         }
         this.onInterval?.call()
         let interval
-        if(this.intervalIndex < this.intervals.length)
+        if(this.intervalIndex < this.intervalsCount)
             interval = this.intervals[this.intervalIndex++]
-        else interval = 50
-        // setTiemout argument needs to be an arrow function
+        else interval = this.intervals[this.intervalsCount - 1]
+        // setTimeout argument needs to be an arrow function
         this.timerId = setTimeout(() => this.startInterval(event), interval)
     }
     stopInterval(){
         clearTimeout(this.timerId)
+        this.timerId = null
         this.intervalIndex = 0
     }
 }
