@@ -5,6 +5,7 @@ A web component that combines the functionality of `<input type="range">` and `<
 [Try it on the demo page](https://alexander-holm.github.io/enhanced-slider/)
 
 ## Attributes and properties
+
 Attributes are set on the component in HTML:
 ```html
 <enhanced-slider min="2" max="10"></enhanced-slider>
@@ -17,6 +18,7 @@ console.log(slider.value) // "5"
 ```
 
 ### step
+
 + Default: 1
 + The interval between allowed numbers
 + Has to be a number, a string value of "any" is not allowed
@@ -26,10 +28,12 @@ console.log(slider.value) // "5"
 + Default: 0
 
 ### max
+
 + Default: 100
 + If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can
 
 ### value
+
 + Default: halfway between min and max
 + If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can
 + Has validation and does not allow invalid values like out of bounds numbers or non-numbers
@@ -42,16 +46,19 @@ console.log(slider.value) // "5"
 + Like a native `<input>` element, the underlying `value` property does not reflect its value back to the attribute
 
 ### disabled
+
 + If this attribute is present (even with the value "false") the component will be disabled
 + Only user iteractions are disabled, the component can still be changed with Javascript
 
 ## Style
+
 There are three ways to change the style:
 1. Regular CSS applied to the entire component
 2. Selecting individual parts with the `::part()` selector
 3. Changing button content with `<slot>` elements
 
 ### CSS selecting the entire component
+
 The component can be selected like any other HTML element using the tag name, a class, or an ID.
 ```css
 enhanced-slider {
@@ -62,6 +69,7 @@ enhanced-slider {
 ```
 
 ### Individual parts using the `::part()` selector
+
 ```css
 /* Applies to both buttons */
 enhanced-slider::part(button){ color: white; }
@@ -73,13 +81,18 @@ enhanced-slider::part(decrement){ background-color: blue; }
 #### Available parts
 
 ##### slider
+
 The `<input type="range">` element
 
 ##### input-box
+
 The `<input type="text">` element
 
 ##### button
+
 This selects both left and right `<button>` elements 
+
 + *decrement* selects the button on the left
 + *increment* selects the button on the right
 
+By default the buttons are square shaped with the same `width` and `height`. The size for both is set by the CSS variable `--size: 1.25em;`. If you want the size to fit the contents just set `width` and `height` to `auto`.
