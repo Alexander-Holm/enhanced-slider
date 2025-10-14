@@ -203,6 +203,7 @@ class EnhancedSlider extends HTMLElement{
             this.removeAttribute("ticks")
             return
         }
+        if(value !== "labels" && value !== "all") return
 
         const newTicks = []
         this.children.slider.setAttribute("list", "ticks")
