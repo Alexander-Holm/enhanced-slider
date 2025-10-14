@@ -114,8 +114,11 @@
     <section id="more-examples">
         <h2>More examples</h2>
         <div>
-            <label for="disabled">Disabled</label>
-            <enhanced-slider id="disabled" disabled></enhanced-slider>
+            <label for="attributes">
+                Different step, min, and max<br>
+                Ticks for every step
+            </label>
+            <enhanced-slider id="attributes" step="2.5" min="-10" max="25" ticks="all"></enhanced-slider>
         </div>
         <div class="dark-mode">
             <label for="dark-mode">Dark & light mode</label>
@@ -129,8 +132,12 @@
             </enhanced-slider>
         </div>
         <div>
-            <label for="attributes">Different step, min, and max</label>
-            <enhanced-slider id="attributes" step="2.5" min="-10" max="25"></enhanced-slider>
+            <label for="disabled">Disabled</label>
+            <enhanced-slider id="disabled" disabled></enhanced-slider>
+        </div>
+        <div>
+            <label for="hide-labels">Without min and max labels</label>
+            <enhanced-slider id="hide-labels" ticks="none" hide-labels ></enhanced-slider>
         </div>
     </section>
 </body>
