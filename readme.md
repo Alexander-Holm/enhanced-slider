@@ -8,47 +8,100 @@ A web component that combines the functionality of `<input type="range">` and `<
 
 Attributes are set on the component in HTML:
 ```html
-<enhanced-slider min="2" max="10"></enhanced-slider>
+<enhanced-slider min="1" max="10"></enhanced-slider>
 ```
-They are linked to the underlying properties with the same name and can be accessed through Javascript. The properties can be set using either strings or numbers, but reading them will always return a string. The exception is `disabled` which is a boolean.
+They are all linked to the underlying properties with the same name and can be accessed through Javascript.
 ```javascript
 const slider = document.querySelector("enhanced-slider")
 slider.value = 5
-console.log(slider.value) // "5"
 ```
 
-### step
+### Number types
 
-+ Default: 1
+These can be set with either numbers or strings. Note that just like `<input type="number>`, these properties will always return its value as a string.
+
+```javascript
+slider.value = 10
+console.log(slider.value) // "10"
+```
+
+#### step
+
 + The interval between allowed numbers
++ Default: 1
 + Has to be a number, a string value of "any" is not allowed
-+ If you prefer the `value` to be displayed with a certain amount of decimals you can add them in a string `step="1.0"`
 
-### min
+#### min
++ Minimum value allowed
 + Default: 0
 
-### max
+#### max
 
++ Maximum value allowed
 + Default: 100
 + If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can
 
-### value
+#### value
 
 + Default: halfway between min and max
 + If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can
-+ Has validation and does not allow invalid values like out of bounds numbers or non-numbers
-+ If `min`, `max`, or `step` contains decimals, `value` will always have decimals as well.
++ Validation:
+    + Values above `max` are set to `max`
+    + Values below `min` are set to `min`
+    + Other invalid values like text are rejected
++ If `min`, `max`, or `step` contain decimals, `value` will always have decimals as well
     ```javascript
     slider.step = 0.25
     slider.value = 5
     console.log(slider.value) // "5.00"
     ```
-+ Like a native `<input>` element, the underlying `value` property does not reflect its value back to the attribute
++ Like a native `<input>` element, the underlying `value` property does not reflect its value back to the attribute. Do not try to read the value from the attribute.
+    ```javascript
+    let value
+    // Correct
+    value = slider.value
+    // Wrong
+    value = slider.getAttribute("value")
+    ```
 
-### disabled
+### Bolean types
 
-+ If this attribute is present (even with the value "false") the component will be disabled
-+ Only user iteractions are disabled, the component can still be changed with Javascript
+If the attribute is present it is interpreted as true, no matter what value is assigned. The default is always false.
+
+```html
+<!-- These sliders are all disabled -->
+<enhanced-slider disabled></enhanced-slider>
+<enhanced-slider disabled="true"></enhanced-slider>
+<enhanced-slider disabled="false"></enhanced-slider>
+```
+
+Uses booleans for setting and getting the properties.
+
+```javascript
+slider.disabled = true
+console.log(slider.disabled) // true
+```
+
+#### disabled
+
++ Disables user interaction
++ Javascript interaction is not disabled
++ `value` will not be submitted with a form
+
+#### hide-labels
+
++ `min` and `max` will not be displayed
+
+### String types
+
+#### ticks
+
++ Displays vertical markers for a `step`
++ Allowed values:
+    + "labels"
+    + "all"
+    + "none"
++ Default: "labels"
 
 ## Style
 
