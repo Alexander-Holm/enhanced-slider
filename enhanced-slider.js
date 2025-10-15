@@ -333,6 +333,7 @@ class EnhancedSlider extends HTMLElement{
 
         const { min, max } = labels
         labels.classList.add("labels")
+        labels.part = "labels"
         min.part = "label min"
         max.part = "label max"
         labels.append(min, max)        
