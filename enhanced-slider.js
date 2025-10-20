@@ -79,6 +79,9 @@ class EnhancedSlider extends HTMLElement{
         slider.value = Number(newValue).toFixed(this.decimalPrecision)
         // Some browsers strip trailing decimals from slider.value, add them again for consistency.
         this.#value = inputBox.value = Number(slider.value).toFixed(this.decimalPrecision)
+        const { value, max, min } = this.#getPropertiesAsNumbers()
+        const percent = (value - min) / (max - min) * 100
+        slider.style.setProperty("--value-percent", percent.toFixed(3)+"%")
         this.internals.setFormValue(this.#value)
 
         this.#handleButtonState()
@@ -219,6 +222,7 @@ class EnhancedSlider extends HTMLElement{
             for(let tickValue = min; tickValue <= max; tickValue += step){
                 const option = document.createElement("option")
                 option.value = tickValue
+                option.label = tickValue
                 newTicks.push(option)
             }
         }
@@ -405,6 +409,54 @@ const icons = {
     `,
 }
 
+const sliderStyleReplacement = {
+    // Setting height of the input to height of thumb makes it
+    // possible to change value by clicking above or below the track.
+    // This is how native <input> works and is better for mobile.
+    input: `
+        --track-height: 5px;
+        --track-radius: var(--track-height);
+        --track-color-before: dodgerblue;
+        --track-color-after: gainsboro;
+
+        --thumb-height: 1.25rem;
+        --thumb-width: 1.25rem;
+        --thumb-radius: var(--thumb-height);
+        --thumb-color: dimgray;
+        --thumb-border: 2px solid hsl(0, 0%, 90%);
+        --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
+
+        appearance: none;
+        height: max(
+            var(--track-height),
+            var(--thumb-height)
+        );
+        background-color: transparent;
+    `,
+    thumb: `
+        appearance: none;
+        height: var(--thumb-height);
+        width: var(--thumb-width); `
+        // input height is height of thumb and should include border
+        +`
+        box-sizing: border-box;
+        border-radius: var(--thumb-radius);
+        border: var(--thumb-border);
+        filter: drop-shadow(var(--thumb-shadow));
+        background-color: var(--thumb-color);
+    `,
+    track: `
+        height: var(--track-height);
+        border-radius: var(--track-radius);
+        background-image: linear-gradient(to right,
+            var(--track-color-before) 50%,
+            var(--track-color-after) 50%
+        );
+        background-size: 200%;
+        background-position-x: calc(100% - var(--value-percent));
+    `
+}
+
 const css = `
     :host {
         display: grid;
@@ -419,15 +471,41 @@ const css = `
     :host([hidden]) {
         display: none;
     }
+
     input[type = "range"] {
         z-index: 3;
         grid-row: 1;
         grid-column: 2;
+        align-self: center;
         min-width: 0;
         margin: 0;
         padding: 0;
+    } `
+    // Avoid setting appearance:none; if the browser does not support styling the slider
+    +`
+    @supports selector(::-moz-range-thumb){
+        input[type = "range"] { ${sliderStyleReplacement.input} }
+        input[type = "range"]::-moz-range-track { ${sliderStyleReplacement.track} }
+        input[type = "range"]::-moz-range-thumb { ${sliderStyleReplacement.thumb} }
     }
-    /* Set width with Javascript */
+    @supports selector(::-webkit-slider-thumb){
+        input[type = "range"] { 
+            ${sliderStyleReplacement.input}
+            `
+            // This is needed for some reason to center track and thumb vertically.
+            // Chrome says input has display:inline-block; so it shouldnt even do anything.
+            +`
+            align-items: center;
+        }
+        input[type = "range"]::-webkit-slider-runnable-track { ${sliderStyleReplacement.track} }
+        input[type = "range"]::-webkit-slider-thumb {
+            ${sliderStyleReplacement.thumb} 
+            margin-top: calc(var(--track-height) / 2 - var(--thumb-height) / 2);
+        }
+    }`
+    
+    // Set width with Javascript
+    +`
     input[type = "text"] {
         z-index: 2;
         grid-area: 2/2;
@@ -442,6 +520,8 @@ const css = `
         margin-top: 6px;
     }
     .labels {
+        display: none !important;
+
         grid-row: 2;
         grid-column: 2;
         margin-bottom: auto;
@@ -484,8 +564,9 @@ const css = `
         align-items: center;
         grid-row: 1;
         user-select: none;
-        touch-action: none;
-        /* Needs the webkit specific properties! */
+        touch-action: none;`
+        // Needs the webkit specific properties! 
+        +`
         -webkit-user-select: none;
         -webkit-touch-callout: none;
         &:enabled:is(:hover, :active) { background-color: revert; }
@@ -493,6 +574,20 @@ const css = `
             opacity: 0.4; 
             color: gray; 
         }
+    }
+
+    datalist{
+        grid-area: 2/2;
+        display: flex;
+        justify-content: space-between;
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: gray;
+    }
+    option{
+        rotate: -90deg;
+        writing-mode: vertical-lr;
+        appearance: none;
     }
 `
 
