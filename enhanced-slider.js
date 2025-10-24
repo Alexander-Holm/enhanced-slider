@@ -15,6 +15,32 @@ class EnhancedSlider extends HTMLElement{
         const { slider, ruler } = sliderContainer
         this.#configureHTML(inputBox, buttons, slider, sliderContainer, ruler)
     }
+    // These functions ending with callback are custom element lifecycle callbacks.
+    // They are not called from in here and needs to have these exact names.
+    connectedCallback(){
+        const { sliderContainer, inputBox, buttons } = this.children
+        this.shadowRoot.append(buttons.decrement, sliderContainer, buttons.increment, inputBox)
+
+        this.#initializeProperties()
+
+        const style = document.createElement("style")
+        style.innerHTML = css
+        this.shadowRoot.appendChild(style)
+
+        this.connected = true
+    }
+    disconnectedCallback(){ this.connected = false }
+    formResetCallback(){ this.value = this.defaultValue }
+    static observedAttributes = [ "value", "min", "max", "step", "ticks", "labels", "disabled" ]
+    attributeChangedCallback(name, oldValue, newValue){
+        // attributeChangedCallback() will be called before connectedCallback(),
+        // but the property setters requires HTML elements to exist.
+        // This function will return when it is run with the initial attributes from HTML.
+        // connectedCallback() will then read the attributes and assign them to properties.
+        if(!this.connected) return
+        if(newValue === oldValue) return
+        this[name] = newValue
+    }
 
     children = {        
         inputBox: document.createElement("input"),
@@ -22,6 +48,9 @@ class EnhancedSlider extends HTMLElement{
             decrement: document.createElement("button"), 
             increment: document.createElement("button") 
         },
+        // This creates an object with properties that contain HTML elements.
+        // This does not add them as children in the HTML!
+        // That has to be done later with element.append()
         sliderContainer: Object.assign(
             document.createElement("div"), {
                 slider: document.createElement("input"), 
@@ -34,40 +63,6 @@ class EnhancedSlider extends HTMLElement{
             }
         )
     }
-
-    // These functions ending with callback are custom element lifecycle callbacks.
-    // They are not called from in here and needs to have these exact names.
-    connectedCallback(){
-        const { sliderContainer, inputBox, buttons } = this.children
-        this.shadowRoot.append(buttons.decrement, sliderContainer, buttons.increment, inputBox)
-
-        this.#initializeNumberProperties()
-        this.#initializeBooleanProperties()
-        // ticks should be set after min, max, and step
-        this.ticks = this.getAttribute("ticks") ?? "min-max"
-        this.labels = this.getAttribute("labels") ?? "min-max"
-
-        const style = document.createElement("style")
-        style.innerHTML = css
-        this.shadowRoot.appendChild(style)
-
-        this.connected = true
-    }
-    disconnectedCallback(){ this.connected = false }
-    formResetCallback(){ this.value = this.defaultValue }
-    static numberAttributes = [ "value", "min", "max", "step" ]
-    static booleanAttributes = [ "disabled", "hide-labels" ]
-    static stringAttributes = [ "ticks", "labels" ]
-    static observedAttributes = [ ...EnhancedSlider.numberAttributes, ...EnhancedSlider.booleanAttributes, ...EnhancedSlider.stringAttributes ]
-    attributeChangedCallback(name, oldValue, newValue){
-        // attributeChangedCallback() will be called before connectedCallback(),
-        // but the property setters requires HTML elements to exist.
-        // This function will return when it is run with the initial attributes from HTML.
-        // connectedCallback() will then read the attributes and assign them to properties.
-        if(!this.connected) return
-        if(newValue === oldValue) return
-        this[name] = newValue
-    }   
 
     // No default values on the private fields!
     // Everything needs to go through the setters.    
@@ -211,12 +206,13 @@ class EnhancedSlider extends HTMLElement{
     /** @param {"min-max" | "all" | "none" | null} value */
     set ticks(value){
         if(value === undefined) return
+        // value will be null if attribute is removed with element.removeAttribute()
         if(value === "none" || value === null){
             this.#ticks = "none"
             this.setAttribute("ticks", "none")
             return
         }
-        else if(value === "min-max" || value === "all"){
+        if(value === "min-max" || value === "all"){
             const { min, max, step } = this.#getPropertiesAsNumbers()
             const newTickArray = []
             for(let tick = min; tick <= max; tick += step){
@@ -240,12 +236,13 @@ class EnhancedSlider extends HTMLElement{
     /** @param {"min-max" | "all" | "none" | null} value */
     set labels(value){
         if(value === undefined) return
+        // value will be null if attribute is removed with element.removeAttribute()
         if(value === "none" || value === null){
             this.#labels = "none"
             this.setAttribute("labels", "none")
             return
         }
-        else if(value === "min-max" || value === "all"){
+        if(value === "min-max" || value === "all"){
             const { min, max, step } = this.#getPropertiesAsNumbers()
             const newLabelArray = []
             for(let label = min; label <= max; label += step){
@@ -261,8 +258,19 @@ class EnhancedSlider extends HTMLElement{
         }
     }
 
-    #initializeNumberProperties(){
-        EnhancedSlider.numberAttributes.forEach(attribute => {
+    #initializeProperties(){
+        // boolean attributes
+        Array("disabled").forEach(attribute => {
+            // Assign true if the attribute is present,
+            // otherwise keep the value if it has already been set in Javascript.
+            // If none are set it defaults to false.
+            this[attribute] = this.hasAttribute(attribute) || (this[attribute] === true)
+        })
+
+        // These properties can not be set using getAttribute() ?? "defaultValue"
+        // because the attribute could have a value that does not pass the setter.
+        // That would leave the property as undefined.
+        Array("value", "min", "max", "step").forEach(attribute => {
             this[attribute] = this.getAttribute(attribute)
         })
         // This assigns default values if:
@@ -274,14 +282,14 @@ class EnhancedSlider extends HTMLElement{
         this.max ??= 100
         const { min, max } = this.#getPropertiesAsNumbers()
         this.value ??= (min + max) / 2
+        // Used when a <form> parent is reset
         this.defaultValue = this.value
-    }
-    #initializeBooleanProperties(){
-        EnhancedSlider.booleanAttributes.forEach(attribute => {
-            // Assign true if the attribute is present,
-            // otherwise keep the value if it has already been set in Javascript.
-            // If none are set it defaults to false.
-            this[attribute] = this.hasAttribute(attribute) || (this[attribute] === true)
+        
+        // These have to be set after min, max, step are guaranteed to have values
+        Array("ticks", "labels").forEach(attribute => {
+            // 
+            this[attribute] = this.getAttribute(attribute) ?? "min-max"
+            this[attribute] ??= "min-max"
         })
     }
 
