@@ -13,20 +13,17 @@ class EnhancedSlider extends HTMLElement{
         
         const { inputBox, buttons, sliderContainer } = this.children
         const { slider, ruler } = sliderContainer
-        this.#configureHTML(inputBox, buttons, slider, sliderContainer, ruler)
+        // This does not insert any HTML into the document,
+        // that can only happen in connectedCallback()
+        this.#configureHTMLElements(inputBox, buttons, slider, sliderContainer, ruler)
+        this.#addCSS()
     }
     // These functions ending with callback are custom element lifecycle callbacks.
     // They are not called from in here and needs to have these exact names.
     connectedCallback(){
+        this.#initializeProperties()
         const { sliderContainer, inputBox, buttons } = this.children
         this.shadowRoot.append(buttons.decrement, sliderContainer, buttons.increment, inputBox)
-
-        this.#initializeProperties()
-
-        const style = document.createElement("style")
-        style.innerHTML = css
-        this.shadowRoot.appendChild(style)
-
         this.connected = true
     }
     disconnectedCallback(){ this.connected = false }
@@ -42,7 +39,7 @@ class EnhancedSlider extends HTMLElement{
         this[name] = newValue
     }
 
-    children = {        
+    children = {
         inputBox: document.createElement("input"),
         buttons: { 
             decrement: document.createElement("button"), 
@@ -337,7 +334,7 @@ class EnhancedSlider extends HTMLElement{
         else if(!this.disabled) increment.disabled = false
     }
    
-    #configureHTML(inputBox, buttons, slider, sliderContainer, ruler){
+    #configureHTMLElements(inputBox, buttons, slider, sliderContainer, ruler){
         slider.type = "range"
         //slider.part = "slider"
         inputBox.type = "text"
@@ -359,8 +356,16 @@ class EnhancedSlider extends HTMLElement{
         const incrementIconSlot = document.createElement("slot")
         decrementIconSlot.setAttribute("name", "decrement")
         incrementIconSlot.setAttribute("name", "increment")
-        decrementIconSlot.innerHTML = icons.left
-        incrementIconSlot.innerHTML = icons.right
+        // https://www.svgrepo.com/collection/humbleicons-oval-line-icons/2?search=chevron
+        // MIT License
+        decrementIconSlot.innerHTML = `
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l-7 7 7 7"/>
+            </svg> `
+        incrementIconSlot.innerHTML = `
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5l7 7-7 7"/>
+            </svg> `
         decrement.append(decrementIconSlot)
         increment.append(incrementIconSlot)
         const buttonFunction = (stepDirection) => {
@@ -382,6 +387,204 @@ class EnhancedSlider extends HTMLElement{
         sliderContainer.part = "slider"
         sliderContainer.className = "slider-container"
         sliderContainer.append(slider, ruler)
+    }
+
+    #addCSS(){
+        const css = new CSSStyleSheet()
+
+        css.insertRule(`:host {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            column-gap: 3px;
+            min-width: 10rem;
+            max-width: 24rem;
+            box-sizing: content-box;
+            margin-block: 10px;
+            color: light-dark(black, white);
+            user-select: none;
+            &:host([hidden]) { display: none !important; }
+        }`)
+
+        // Needs the webkit specific properties! 
+        css.insertRule(`button {
+            grid-row: 2;
+            --size: 1.25em;
+            width: var(--size);
+            height: var(--size);
+            font-size: 1rem;
+            box-sizing: content-box;
+            padding: 2px;
+            margin: auto;
+            border: 0px;
+            border-radius: 4px;
+            background-color: transparent;
+            color: inherit;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            user-select: none;
+            touch-action: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+
+            &:enabled:is(:hover, :active) { background-color: revert; }
+            &:disabled { 
+                opacity: 0.4; 
+                color: gray; 
+            }
+        }`)
+
+        // width is set by Javascript 
+        css.insertRule(`input[type = "text"] {
+            z-index: 2;
+            grid-row: 3;
+            grid-column: 2;        
+            min-width: fit-content;
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 2px;
+            box-sizing: content-box;
+            border: 1px solid light-dark(#bbb, #555);
+            border-radius: 4px;
+            color: inherit;
+            margin: auto;
+            margin-block: 2px;
+            &:host([labels = "all"]) > input[type = "text"]{
+                grid-row: 1;
+            }
+        }`)
+        css.insertRule(`:host([labels = "all"]) > input[type = "text"]{
+            grid-row: 1;
+        }`)
+        
+        css.insertRule(`input[type = "range"] {
+            z-index: 3;
+            align-self: center;
+            width: 100%;
+            min-width: 0;
+            margin: 0;
+            padding: 0;
+        }`)
+
+        // These properties replaces the default appearance of <input type="range">
+        // 
+        const sliderStyleReplacement = {
+            container: `
+                --track-height: 5px;
+                --track-radius: var(--track-height);
+                --track-color-before: dodgerblue;
+                --track-color-after: gainsboro;
+
+                --thumb-height: 1.25rem;
+                --thumb-width: 1.25rem;
+                --thumb-radius: var(--thumb-height);
+                --thumb-color: dimgray;
+                --thumb-border: 2px solid hsl(0, 0%, 90%);
+                --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
+            `,
+            // Setting height of the input to height of thumb makes it
+            // possible to change value by clicking above or below the track.
+            // This is how native <input> works and is better for mobile.
+            input: `
+                appearance: none;
+                height: max(
+                    var(--track-height),
+                    var(--thumb-height)
+                );
+                background-color: transparent;
+            `,
+            // box-sizing: border-box because input height is height of thumb and should include border
+            thumb: `
+                appearance: none;
+                height: var(--thumb-height);
+                width: var(--thumb-width);
+                box-sizing: border-box;
+                border-radius: var(--thumb-radius);
+                border: var(--thumb-border);
+                filter: drop-shadow(var(--thumb-shadow));
+                background-color: var(--thumb-color);
+            `,
+            track: `
+                height: var(--track-height);
+                border-radius: var(--track-radius);
+                background-image: linear-gradient(to right,
+                    var(--track-color-before) 50%,
+                    var(--track-color-after) 50%
+                );
+                background-size: 200%;
+                background-position-x: calc(100% - var(--value-percent));
+            `
+        }
+
+        css.insertRule(`@supports selector(::-moz-range-thumb){
+            .slider-container { ${sliderStyleReplacement.container} }
+            input[type = "range"] { ${sliderStyleReplacement.input} }
+            input[type = "range"]::-moz-range-track { ${sliderStyleReplacement.track} }
+            input[type = "range"]::-moz-range-thumb { ${sliderStyleReplacement.thumb} }
+        }`)
+        // This is needed for some reason to center track and thumb vertically.
+        // Chrome says input has display:inline-block; so it shouldnt even do anything.
+        css.insertRule(`@supports selector(::-webkit-slider-thumb){
+            .slider-container { ${sliderStyleReplacement.container} }
+            input[type = "range"] { 
+                ${sliderStyleReplacement.input}
+                align-items: center;
+            }
+            input[type = "range"]::-webkit-slider-runnable-track { ${sliderStyleReplacement.track} }
+            input[type = "range"]::-webkit-slider-thumb {
+                ${sliderStyleReplacement.thumb} 
+                margin-top: calc(var(--track-height) / 2 - var(--thumb-height) / 2);
+            }
+        }`)
+
+        css.insertRule(`.slider-container {
+            grid-row: 2 / 4;
+            grid-column: 2;
+            position: relative;
+            display: grid;
+            grid-template-rows: subgrid;
+        }`)
+
+        css.insertRule(`.ruler {
+            padding-inline: calc(var(--thumb-width, 18px) / 2);
+            margin-top: -2px;
+
+            & > .labels, & > .ticks{
+                display: flex;
+                justify-content: space-between;            
+                & > span { display: none; }
+            }
+            & > .labels > span{
+                width: 0px;
+                font-family: monospace;
+                font-size: 0.8rem;
+                color: gray;
+            }
+            & > .ticks > span.width-zero-centering{
+                width: 0px;
+                & > .tick{
+                    width: 1px;
+                    height: 6px;
+                    flex-shrink: 0;
+                    margin-top: -4px;
+                    background-color: gray;
+                    border-radius: 1px;
+                }
+            }
+        }`)
+
+        css.insertRule(`
+            :host([labels = "all"]) .labels > span,
+            :host([ticks = "all"]) .ticks > span.width-zero-centering,
+            :host([labels = "min-max"]) .labels > :is(:first-child, :last-child),
+            :host([ticks = "min-max"]) .ticks > :is(:first-child, :last-child){
+                display: flex;
+                justify-content: center;
+            }
+        `)
+
+        this.shadowRoot.adoptedStyleSheets = [css]
     }
 }
 
@@ -434,224 +637,5 @@ class ButtonIntervalWrapper{
         this.intervalIndex = 0
     }
 }
-
-// https://www.svgrepo.com/collection/humbleicons-oval-line-icons/2?search=chevron
-// MIT License
-const icons = {
-    left: `
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l-7 7 7 7"/>
-        </svg>
-    `,
-    right: `
-       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5l7 7-7 7"/>
-        </svg>
-    `,
-}
-
-const sliderStyleReplacement = {
-    container: `
-    --track-height: 5px;
-        --track-radius: var(--track-height);
-        --track-color-before: dodgerblue;
-        --track-color-after: gainsboro;
-
-        --thumb-height: 1.25rem;
-        --thumb-width: 1.25rem;
-        --thumb-radius: var(--thumb-height);
-        --thumb-color: dimgray;
-        --thumb-border: 2px solid hsl(0, 0%, 90%);
-        --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
-    `,
-    // Setting height of the input to height of thumb makes it
-    // possible to change value by clicking above or below the track.
-    // This is how native <input> works and is better for mobile.
-    input: `
-        appearance: none;
-        height: max(
-            var(--track-height),
-            var(--thumb-height)
-        );
-        background-color: transparent;
-
-        & ~ .test {
-            --test: var(--thumb-height);
-        }
-    `,
-    thumb: `
-        appearance: none;
-        height: var(--thumb-height);
-        width: var(--thumb-width); `
-        // input height is height of thumb and should include border
-        +`
-        box-sizing: border-box;
-        border-radius: var(--thumb-radius);
-        border: var(--thumb-border);
-        filter: drop-shadow(var(--thumb-shadow));
-        background-color: var(--thumb-color);
-    `,
-    track: `
-        height: var(--track-height);
-        border-radius: var(--track-radius);
-        background-image: linear-gradient(to right,
-            var(--track-color-before) 50%,
-            var(--track-color-after) 50%
-        );
-        background-size: 200%;
-        background-position-x: calc(100% - var(--value-percent));
-    `
-}
-
-const css = `
-    :host {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        column-gap: 3px;
-        min-width: 10rem;
-        max-width: 24rem;
-        box-sizing: content-box;
-        margin-block: 10px;
-        color: light-dark(black, white);
-        user-select: none;
-    }        
-    :host([hidden]) {
-        display: none;
-    }`
-    // Set width with Javascript
-    +`
-    input[type = "text"] {
-        z-index: 2;
-        grid-row: 3;
-        grid-column: 2;        
-        min-width: fit-content;
-        text-align: center;
-        font-size: 0.9rem;
-        padding: 2px;
-        box-sizing: content-box;
-        border: 1px solid light-dark(#bbb, #555);
-        border-radius: 4px;
-        color: inherit;
-        margin: auto;
-        margin-block: 2px;
-    }
-    :host([labels = "all"]) > input[type = "text"]{
-        grid-row: 1;
-    }
-
-    input[type = "range"] {
-        z-index: 3;
-        align-self: center;
-        width: 100%;
-        min-width: 0;
-        margin: 0;
-        padding: 0;
-    } `
-    // Avoid setting appearance:none; if the browser does not support styling the slider
-    +`
-    @supports selector(::-moz-range-thumb){
-        .slider-container { ${sliderStyleReplacement.container} }
-        input[type = "range"] { ${sliderStyleReplacement.input} }
-        input[type = "range"]::-moz-range-track { ${sliderStyleReplacement.track} }
-        input[type = "range"]::-moz-range-thumb { ${sliderStyleReplacement.thumb} }
-    }
-    @supports selector(::-webkit-slider-thumb){
-        .slider-container { ${sliderStyleReplacement.container} }
-        input[type = "range"] { 
-            ${sliderStyleReplacement.input}
-            `
-            // This is needed for some reason to center track and thumb vertically.
-            // Chrome says input has display:inline-block; so it shouldnt even do anything.
-            +`
-            align-items: center;
-        }
-        input[type = "range"]::-webkit-slider-runnable-track { ${sliderStyleReplacement.track} }
-        input[type = "range"]::-webkit-slider-thumb {
-            ${sliderStyleReplacement.thumb} 
-            margin-top: calc(var(--track-height) / 2 - var(--thumb-height) / 2);
-        }
-    }
-    
-    .slider-container{
-        grid-row: 2 / 4;
-        grid-column: 2;
-        position: relative;
-        display: grid;
-        grid-template-rows: subgrid;
-    }
-    .ruler {
-        padding-inline: calc(var(--thumb-width, 18px) / 2);
-        margin-top: -2px;
-
-        & > .labels, & > .ticks{
-            display: flex;
-            justify-content: space-between;            
-            & > span { display: none; }
-        }
-        & > .labels > span{
-            width: 0px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            color: gray;
-        }
-        & > .ticks > span.width-zero-centering{
-            width: 0px;
-            & > .tick{
-                width: 1px;
-                height: 6px;
-                flex-shrink: 0;
-                margin-top: -4px;
-                background-color: gray;
-                border-radius: 1px;
-            }
-        }
-    }
-    :host([labels = "all"]) .labels > span,
-    :host([ticks = "all"]) .ticks > span.width-zero-centering,
-    :host([labels = "min-max"]) .labels > :is(:first-child, :last-child),
-    :host([ticks = "min-max"]) .ticks > :is(:first-child, :last-child){
-        display: flex;
-        justify-content: center;
-    }
-    
-    // FIX
-    :host(:disabled) > .labels {
-        opacity: 0.5;
-        color: gray;
-    }
-    :host([hide-labels]) > .labels {
-        display: none;
-    }
-
-    button {
-        --size: 1.25em;
-        grid-row: 2;
-        font-size: 1rem;
-        width: var(--size);
-        height: var(--size);
-        aspect-ratio: 1;
-        box-sizing: content-box;
-        padding: 2px;
-        margin: auto;
-        border: 0px;
-        border-radius: 4px;
-        background-color: transparent;
-        color: inherit;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        user-select: none;
-        touch-action: none;`
-        // Needs the webkit specific properties! 
-        +`
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-        &:enabled:is(:hover, :active) { background-color: revert; }
-        &:disabled { 
-            opacity: 0.4; 
-            color: gray; 
-        }
-    }
-`
 
 customElements.define(componentName, EnhancedSlider)
