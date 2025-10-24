@@ -11,48 +11,54 @@ class EnhancedSlider extends HTMLElement{
         this.internals = this.attachInternals()
         this.attachShadow({mode: "open"})
         
-        const { slider, inputBox, ticks, buttons, labels } = this.children
-        this.#configureHTML(slider, inputBox, ticks, buttons, labels)
-        this.children.css.innerHTML = css 
+        const { inputBox, buttons, sliderContainer } = this.children
+        const { slider, ruler } = sliderContainer
+        this.#configureHTML(inputBox, buttons, slider, sliderContainer, ruler)
     }
 
-    children = {
-        slider: document.createElement("input"), 
+    children = {        
         inputBox: document.createElement("input"),
         buttons: { 
             decrement: document.createElement("button"), 
             increment: document.createElement("button") 
         },
-        // This assignment creates a <div> with the properties min and max,
-        // that each holds a <span>, that can be accessed with this.children.labels.min
-        // This does not add them as children in the HTML, that has to be done later!
-        labels: Object.assign(
-            document.createElement("div"),
-            {
-                min: document.createElement("span"), 
-                max: document.createElement("span")
+        sliderContainer: Object.assign(
+            document.createElement("div"), {
+                slider: document.createElement("input"), 
+                ruler: Object.assign(
+                    document.createElement("div"), {
+                        labels: document.createElement("div"),
+                        ticks: document.createElement("div")
+                    }
+                ),
             }
-        ),
-        ticks: document.createElement("datalist"),
-        css: document.createElement("style")
+        )
     }
 
     // These functions ending with callback are custom element lifecycle callbacks.
     // They are not called from in here and needs to have these exact names.
     connectedCallback(){
-        const { slider, inputBox, buttons, labels, ticks, css } = this.children
-        this.shadowRoot.append(buttons.decrement, slider, buttons.increment, inputBox, labels, ticks, css)
+        const { sliderContainer, inputBox, buttons } = this.children
+        this.shadowRoot.append(buttons.decrement, sliderContainer, buttons.increment, inputBox)
+
         this.#initializeNumberProperties()
         this.#initializeBooleanProperties()
         // ticks should be set after min, max, and step
-        this.ticks = this.getAttribute("ticks") ?? "labels"
+        this.ticks = this.getAttribute("ticks") ?? "min-max"
+        this.labels = this.getAttribute("labels") ?? "min-max"
+
+        const style = document.createElement("style")
+        style.innerHTML = css
+        this.shadowRoot.appendChild(style)
+
         this.connected = true
     }
     disconnectedCallback(){ this.connected = false }
     formResetCallback(){ this.value = this.defaultValue }
     static numberAttributes = [ "value", "min", "max", "step" ]
     static booleanAttributes = [ "disabled", "hide-labels" ]
-    static observedAttributes = [ ...EnhancedSlider.numberAttributes, ...EnhancedSlider.booleanAttributes, "ticks" ]
+    static stringAttributes = [ "ticks", "labels" ]
+    static observedAttributes = [ ...EnhancedSlider.numberAttributes, ...EnhancedSlider.booleanAttributes, ...EnhancedSlider.stringAttributes ]
     attributeChangedCallback(name, oldValue, newValue){
         // attributeChangedCallback() will be called before connectedCallback(),
         // but the property setters requires HTML elements to exist.
@@ -68,7 +74,8 @@ class EnhancedSlider extends HTMLElement{
     #value 
     get value(){ return this.#value}
     set value(newValue){
-        const { slider, inputBox } = this.children
+        const { inputBox } = this.children
+        const { slider } = this.children.sliderContainer
 
         if(this.#isNotNumber(newValue)){
             inputBox.value = this.#value
@@ -92,9 +99,9 @@ class EnhancedSlider extends HTMLElement{
     get min(){ return this.#min }
     set min(newValue){
         if(this.#isNotNumber(newValue) || newValue === this.#min) return
-        const { slider, labels } = this.children
+        const { slider } = this.children.sliderContainer
         slider.min = newValue
-        this.#min = labels.min.innerHTML = slider.min
+        this.#min = slider.min
         this.setAttribute("min", this.#min)
         // Max needs to be recalculated so that all steps fit between min and max
         // Value will be recalculated by max setter if needed.
@@ -104,6 +111,7 @@ class EnhancedSlider extends HTMLElement{
         this.#updateDecimalPrecision()
         this.#handleButtonState()
         this.ticks = this.#ticks
+        this.labels = this.#labels
         if(min > value) this.value = this.#min
     } 
 
@@ -114,7 +122,7 @@ class EnhancedSlider extends HTMLElement{
         // It should be possible to rerun the validation
         // by calling this setter with the same value.
         if(this.#isNotNumber(newValue)) return
-        const { slider, labels } = this.children
+        const { slider } = this.children.sliderContainer
         // Change max to maximum value that can actually be set.
         // The maximum value is determined by step and min (or value if no min).
         // See: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/range
@@ -131,11 +139,12 @@ class EnhancedSlider extends HTMLElement{
             )
         slider.max = slider.value
         slider.value = sliderOriginalValue
-        this.#max = labels.max.innerHTML = slider.max
+        this.#max = slider.max
         this.setAttribute("max", this.#max)
         this.#updateDecimalPrecision()
         this.#handleButtonState()
         this.ticks = this.#ticks
+        this.labels = this.#labels
         const { max, value } = this.#getPropertiesAsNumbers()
         if(value > max) this.value = this.#max
         // Recalculate to make sure value is a step between min and max
@@ -146,7 +155,7 @@ class EnhancedSlider extends HTMLElement{
     get step(){ return this.#step }
     set step(newValue){
         if(this.#isNotNumber(newValue) || newValue === this.#step) return
-        const { slider } = this.children
+        const { slider } = this.children.sliderContainer
         slider.step = newValue
         this.#step = slider.step
         this.setAttribute("step", this.#step)
@@ -154,6 +163,7 @@ class EnhancedSlider extends HTMLElement{
         this.max = this.#max
         this.#updateDecimalPrecision()
         this.ticks = this.#ticks
+        this.labels = this.#labels
         // Recalculate to make sure value is a step between min and max
         this.value = this.#value
     }
@@ -189,46 +199,66 @@ class EnhancedSlider extends HTMLElement{
             this.setAttribute("disabled", "")
             this.#disabled = true
         }
-        const { slider, inputBox, buttons } = this.children
-        slider.disabled = inputBox.disabled = buttons.decrement.disabled = buttons.increment.disabled = this.#disabled
+        const { inputBox } = this.children
+        const { slider } = this.children.sliderContainer
+        const { decrement, increment } = this.children.buttons
+        slider.disabled = inputBox.disabled = decrement.disabled = increment.disabled = this.#disabled
         this.#handleButtonState()
     }
 
     #ticks
     get ticks() { return this.#ticks }
-    /** @param {"labels" | "all" | "none" | null} value */
+    /** @param {"min-max" | "all" | "none" | null} value */
     set ticks(value){
         if(value === undefined) return
         if(value === "none" || value === null){
-            // Disconnecting the <datalist> instead of removing all its <option>
-            this.children.slider.removeAttribute("list")
-            this.#ticks = null
-            this.removeAttribute("ticks")
+            this.#ticks = "none"
+            this.setAttribute("ticks", "none")
             return
         }
-        if(value !== "labels" && value !== "all") return
-
-        const newTicks = []
-        this.children.slider.setAttribute("list", "ticks")
-        if(value === "labels"){
-            const min = document.createElement("option")
-            min.value = this.#min
-            const max = document.createElement("option")
-            max.value = this.#max
-            newTicks.push(min, max)
-        }
-        else if(value === "all"){ 
+        else if(value === "min-max" || value === "all"){
             const { min, max, step } = this.#getPropertiesAsNumbers()
-            for(let tickValue = min; tickValue <= max; tickValue += step){
-                const option = document.createElement("option")
-                option.value = tickValue
-                option.label = tickValue
-                newTicks.push(option)
+            const newTickArray = []
+            for(let tick = min; tick <= max; tick += step){
+                const wrapper = document.createElement("span")
+                wrapper.className = "width-zero-centering"
+                const tickElement = document.createElement("span")
+                tickElement.className = "tick"
+                tickElement.part = "tick"
+                wrapper.appendChild(tickElement)
+                newTickArray.push(wrapper)
             }
+            this.children.sliderContainer.ruler.ticks.replaceChildren(...newTickArray)
+            this.#ticks = value
+            this.setAttribute("ticks", value)
+            return
         }
-        this.#ticks = value
-        this.setAttribute("ticks", value)
-        this.children.ticks.replaceChildren(...newTicks)
+    }
+
+    #labels
+    get labels() { return this.#labels }
+    /** @param {"min-max" | "all" | "none" | null} value */
+    set labels(value){
+        if(value === undefined) return
+        if(value === "none" || value === null){
+            this.#labels = "none"
+            this.setAttribute("labels", "none")
+            return
+        }
+        else if(value === "min-max" || value === "all"){
+            const { min, max, step } = this.#getPropertiesAsNumbers()
+            const newLabelArray = []
+            for(let label = min; label <= max; label += step){
+                const element = document.createElement("span")
+                element.part = "label"
+                element.innerHTML = label
+                newLabelArray.push(element)
+            }
+            this.children.sliderContainer.ruler.labels.replaceChildren(...newLabelArray)
+            this.#labels = value
+            this.setAttribute("labels", value)
+            return
+        }
     }
 
     #initializeNumberProperties(){
@@ -299,15 +329,13 @@ class EnhancedSlider extends HTMLElement{
         else if(!this.disabled) increment.disabled = false
     }
    
-    #configureHTML(slider, inputBox, ticks, buttons, labels){
-        ticks.id = "ticks"
-
+    #configureHTML(inputBox, buttons, slider, sliderContainer, ruler){
         slider.type = "range"
-        slider.part = "slider"
-        slider.setAttribute("list", ticks.id)
+        //slider.part = "slider"
         inputBox.type = "text"
         inputBox.inputMode = "decimal"
         inputBox.autocomplete = "off"
+        inputBox.size = "2"
         inputBox.part = "input-box"
         // inputBox should not be oninput,
         // the validation might reset the input as you are typing.
@@ -335,12 +363,17 @@ class EnhancedSlider extends HTMLElement{
         new ButtonIntervalWrapper(decrement, () => buttonFunction(-1))
         new ButtonIntervalWrapper(increment, () => buttonFunction(1))
 
-        const { min, max } = labels
+        const { ticks, labels } = ruler
+        ruler.className = "ruler"
         labels.classList.add("labels")
-        labels.part = "labels"
-        min.part = "label min"
-        max.part = "label max"
-        labels.append(min, max)        
+        ticks.classList.add("ticks")
+        // This adds the containers,
+        // the individual ticks and labels are created in the property setters
+        ruler.append(ticks, labels)
+
+        sliderContainer.part = "slider"
+        sliderContainer.className = "slider-container"
+        sliderContainer.append(slider, ruler)
     }
 }
 
@@ -410,11 +443,8 @@ const icons = {
 }
 
 const sliderStyleReplacement = {
-    // Setting height of the input to height of thumb makes it
-    // possible to change value by clicking above or below the track.
-    // This is how native <input> works and is better for mobile.
-    input: `
-        --track-height: 5px;
+    container: `
+    --track-height: 5px;
         --track-radius: var(--track-height);
         --track-color-before: dodgerblue;
         --track-color-after: gainsboro;
@@ -425,13 +455,21 @@ const sliderStyleReplacement = {
         --thumb-color: dimgray;
         --thumb-border: 2px solid hsl(0, 0%, 90%);
         --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
-
+    `,
+    // Setting height of the input to height of thumb makes it
+    // possible to change value by clicking above or below the track.
+    // This is how native <input> works and is better for mobile.
+    input: `
         appearance: none;
         height: max(
             var(--track-height),
             var(--thumb-height)
         );
         background-color: transparent;
+
+        & ~ .test {
+            --test: var(--thumb-height);
+        }
     `,
     thumb: `
         appearance: none;
@@ -467,16 +505,36 @@ const css = `
         box-sizing: content-box;
         margin-block: 10px;
         color: light-dark(black, white);
+        user-select: none;
     }        
     :host([hidden]) {
         display: none;
+    }`
+    // Set width with Javascript
+    +`
+    input[type = "text"] {
+        z-index: 2;
+        grid-row: 3;
+        grid-column: 2;        
+        min-width: fit-content;
+        text-align: center;
+        font-size: 0.9rem;
+        padding: 2px;
+        box-sizing: content-box;
+        border: 1px solid light-dark(#bbb, #555);
+        border-radius: 4px;
+        color: inherit;
+        margin: auto;
+        margin-block: 2px;
+    }
+    :host([labels = "all"]) > input[type = "text"]{
+        grid-row: 1;
     }
 
     input[type = "range"] {
         z-index: 3;
-        grid-row: 1;
-        grid-column: 2;
         align-self: center;
+        width: 100%;
         min-width: 0;
         margin: 0;
         padding: 0;
@@ -484,11 +542,13 @@ const css = `
     // Avoid setting appearance:none; if the browser does not support styling the slider
     +`
     @supports selector(::-moz-range-thumb){
+        .slider-container { ${sliderStyleReplacement.container} }
         input[type = "range"] { ${sliderStyleReplacement.input} }
         input[type = "range"]::-moz-range-track { ${sliderStyleReplacement.track} }
         input[type = "range"]::-moz-range-thumb { ${sliderStyleReplacement.thumb} }
     }
     @supports selector(::-webkit-slider-thumb){
+        .slider-container { ${sliderStyleReplacement.container} }
         input[type = "range"] { 
             ${sliderStyleReplacement.input}
             `
@@ -502,43 +562,51 @@ const css = `
             ${sliderStyleReplacement.thumb} 
             margin-top: calc(var(--track-height) / 2 - var(--thumb-height) / 2);
         }
-    }`
+    }
     
-    // Set width with Javascript
-    +`
-    input[type = "text"] {
-        z-index: 2;
-        grid-area: 2/2;
-        text-align: center;
-        font-size: 0.9rem;
-        padding: 2px;
-        box-sizing: content-box;
-        border: 1px solid light-dark(#bbb, #555);
-        border-radius: 4px;
-        color: inherit;
-        margin: auto;
-        margin-top: 6px;
-    }
-    .labels {
-        display: none !important;
-
-        grid-row: 2;
+    .slider-container{
+        grid-row: 2 / 4;
         grid-column: 2;
-        margin-bottom: auto;
-        margin-top: 2px;
-        display: flex;
-        justify-content: space-between;
-        font-family: monospace;
-        font-size: 0.8rem;
-        color: gray;
-        & > span {
-            /* Magic number */
-            width: 18px;
-            display: flex;
-            justify-content: center;
-            user-select: none;
-        }            
+        position: relative;
+        display: grid;
+        grid-template-rows: subgrid;
     }
+    .ruler {
+        padding-inline: calc(var(--thumb-width, 18px) / 2);
+        margin-top: -2px;
+
+        & > .labels, & > .ticks{
+            display: flex;
+            justify-content: space-between;            
+            & > span { display: none; }
+        }
+        & > .labels > span{
+            width: 0px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: gray;
+        }
+        & > .ticks > span.width-zero-centering{
+            width: 0px;
+            & > .tick{
+                width: 1px;
+                height: 6px;
+                flex-shrink: 0;
+                margin-top: -4px;
+                background-color: gray;
+                border-radius: 1px;
+            }
+        }
+    }
+    :host([labels = "all"]) .labels > span,
+    :host([ticks = "all"]) .ticks > span.width-zero-centering,
+    :host([labels = "min-max"]) .labels > :is(:first-child, :last-child),
+    :host([ticks = "min-max"]) .ticks > :is(:first-child, :last-child){
+        display: flex;
+        justify-content: center;
+    }
+    
+    // FIX
     :host(:disabled) > .labels {
         opacity: 0.5;
         color: gray;
@@ -546,8 +614,10 @@ const css = `
     :host([hide-labels]) > .labels {
         display: none;
     }
+
     button {
         --size: 1.25em;
+        grid-row: 2;
         font-size: 1rem;
         width: var(--size);
         height: var(--size);
@@ -562,7 +632,6 @@ const css = `
         display: flex;
         justify-content: center;
         align-items: center;
-        grid-row: 1;
         user-select: none;
         touch-action: none;`
         // Needs the webkit specific properties! 
@@ -574,20 +643,6 @@ const css = `
             opacity: 0.4; 
             color: gray; 
         }
-    }
-
-    datalist{
-        grid-area: 2/2;
-        display: flex;
-        justify-content: space-between;
-        font-family: monospace;
-        font-size: 0.8rem;
-        color: gray;
-    }
-    option{
-        rotate: -90deg;
-        writing-mode: vertical-lr;
-        appearance: none;
     }
 `
 
