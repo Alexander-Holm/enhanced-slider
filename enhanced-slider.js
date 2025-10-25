@@ -471,16 +471,16 @@ class EnhancedSlider extends HTMLElement{
         // 
         const sliderStyleReplacement = {
             container: `
-                --track-height: 5px;
+                --track-height: 4px;
                 --track-radius: var(--track-height);
                 --track-color-before: dodgerblue;
                 --track-color-after: gainsboro;
 
-                --thumb-height: 1.25rem;
-                --thumb-width: 1.25rem;
+                --thumb-height: 1rem;
+                --thumb-width: 1rem;
                 --thumb-radius: var(--thumb-height);
-                --thumb-color: dimgray;
-                --thumb-border: 2px solid hsl(0, 0%, 90%);
+                --thumb-color: white;
+                --thumb-border: 2px solid var(--track-color-before);
                 --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
             `,
             // Setting height of the input to height of thumb makes it
