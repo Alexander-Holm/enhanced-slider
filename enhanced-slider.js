@@ -473,8 +473,8 @@ class EnhancedSlider extends HTMLElement{
             container: `
                 --track-height: 4px;
                 --track-radius: var(--track-height);
-                --track-color-before: dodgerblue;
-                --track-color-after: gainsboro;
+                --track-color-before: light-dark(dodgerblue, #4ca7ff);
+                --track-color-after: light-dark(gainsboro, #353535);
 
                 --thumb-height: 1rem;
                 --thumb-width: 1rem;
