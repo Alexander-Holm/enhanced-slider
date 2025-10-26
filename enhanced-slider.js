@@ -336,7 +336,7 @@ class EnhancedSlider extends HTMLElement{
    
     #configureHTMLElements(inputBox, buttons, slider, sliderContainer, ruler){
         slider.type = "range"
-        //slider.part = "slider"
+        slider.part = "test"
         inputBox.type = "text"
         inputBox.inputMode = "decimal"
         inputBox.autocomplete = "off"
@@ -470,18 +470,23 @@ class EnhancedSlider extends HTMLElement{
         // These properties replaces the default appearance of <input type="range">
         // 
         const sliderStyleReplacement = {
+            // hover color-mix does not work inside &:hover
             container: `
                 --track-height: 4px;
                 --track-radius: var(--track-height);
                 --track-color-before: light-dark(dodgerblue, #4ca7ff);
                 --track-color-after: light-dark(gainsboro, #353535);
-
+                
                 --thumb-height: 1rem;
                 --thumb-width: 1rem;
                 --thumb-radius: var(--thumb-height);
                 --thumb-color: white;
                 --thumb-border: 2px solid var(--track-color-before);
                 --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
+                
+                --hover-track-before: color-mix(in oklch, var(--track-color-before), white 10%);
+                --hover-track-after: color-mix(in oklch, var(--track-color-after), gray 10%);
+                --active-thumb-shadow: var(--thumb-shadow), inset 0 0 0 4px var(--hover-track-before);
             `,
             // Setting height of the input to height of thumb makes it
             // possible to change value by clicking above or below the track.
@@ -493,6 +498,16 @@ class EnhancedSlider extends HTMLElement{
                     var(--thumb-height)
                 );
                 background-color: transparent;
+                &:enabled:hover{
+                    --track-color-before: var(--hover-track-before);
+                    --track-color-after: var(--hover-track-after);
+                    --thumb-border: 2px solid var(--track-color-before);
+                    --thumb-shadow: 0 1px 2px hsla(0 0% 0% / 50%);
+                    filter: saturate(150%);
+                }
+                &:enabled:active{
+                    --thumb-border: calc(min(var(--thumb-width), var(--thumb-height)) *0.4) solid var(--hover-track-before);
+                }
             `,
             // box-sizing: border-box because input height is height of thumb and should include border
             thumb: `
@@ -502,8 +517,9 @@ class EnhancedSlider extends HTMLElement{
                 box-sizing: border-box;
                 border-radius: var(--thumb-radius);
                 border: var(--thumb-border);
-                filter: drop-shadow(var(--thumb-shadow));
+                box-shadow: var(--thumb-shadow);
                 background-color: var(--thumb-color);
+                transition: 100ms border-width linear;
             `,
             track: `
                 height: var(--track-height);
