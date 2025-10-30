@@ -12,10 +12,9 @@ class EnhancedSlider extends HTMLElement{
         this.attachShadow({mode: "open"})
         
         const { inputBox, buttons, sliderContainer } = this.children
-        const { slider, ruler } = sliderContainer
         // This does not insert any HTML into the document,
         // that can only happen in connectedCallback()
-        this.#configureHTMLElements(inputBox, buttons, slider, sliderContainer, ruler)
+        this.#configureHTMLElements(inputBox, buttons, sliderContainer)
         this.#addCSS()
     }
     // These functions ending with callback are custom element lifecycle callbacks.
@@ -24,6 +23,9 @@ class EnhancedSlider extends HTMLElement{
         this.#initializeProperties()
         const { sliderContainer, inputBox, buttons } = this.children
         this.shadowRoot.append(buttons.decrement, sliderContainer, buttons.increment, inputBox)
+        // Has to be done after adding all elements to DOM,
+        // because the function reads thumb.offsetWidth
+        this.#updateSliderPosition()
         this.connected = true
     }
     disconnectedCallback(){ this.connected = false }
@@ -48,17 +50,22 @@ class EnhancedSlider extends HTMLElement{
         // This creates an object with properties that contain HTML elements.
         // This does not add them as children in the HTML!
         // That has to be done later with element.append()
-        sliderContainer: Object.assign(
-            document.createElement("div"), {
-                slider: document.createElement("input"), 
-                ruler: Object.assign(
-                    document.createElement("div"), {
-                        labels: document.createElement("div"),
-                        ticks: document.createElement("div")
-                    }
-                ),
-            }
-        )
+
+        // sliderContainer is a fieldset so that it can be disabled.
+        // This makes it easier to style with css.
+        sliderContainer: Object.assign(document.createElement("fieldset"), {
+            hiddenInputRange: document.createElement("input"), 
+            customSlider: Object.assign(document.createElement("div"), {
+                thumb: document.createElement("span"),
+                track: Object.assign(document.createElement("div"), {
+                    fill: document.createElement("span")
+                })
+            }),
+            ruler: Object.assign(document.createElement("div"), {
+                    labels: document.createElement("div"),
+                    ticks: document.createElement("div")
+            }),
+        })
     }
 
     // No default values on the private fields!
@@ -67,22 +74,20 @@ class EnhancedSlider extends HTMLElement{
     get value(){ return this.#value}
     set value(newValue){
         const { inputBox } = this.children
-        const { slider } = this.children.sliderContainer
-
+        
         if(this.#isNotNumber(newValue)){
             inputBox.value = this.#value
             return
         }
-
+        
         // Let slider handle validation of min, max, step
-        slider.value = Number(newValue).toFixed(this.decimalPrecision)
+        const { hiddenInputRange } = this.children.sliderContainer
+        hiddenInputRange.value = Number(newValue).toFixed(this.decimalPrecision)
         // Some browsers strip trailing decimals from slider.value, add them again for consistency.
-        this.#value = inputBox.value = Number(slider.value).toFixed(this.decimalPrecision)
-        const { value, max, min } = this.#getPropertiesAsNumbers()
-        const percent = (value - min) / (max - min) * 100
-        slider.style.setProperty("--value-percent", percent.toFixed(3)+"%")
+        this.#value = inputBox.value = Number(hiddenInputRange.value).toFixed(this.decimalPrecision)
         this.internals.setFormValue(this.#value)
-
+        
+        this.#updateSliderPosition()
         this.#handleButtonState()
         return
     }
@@ -91,9 +96,9 @@ class EnhancedSlider extends HTMLElement{
     get min(){ return this.#min }
     set min(newValue){
         if(this.#isNotNumber(newValue) || newValue === this.#min) return
-        const { slider } = this.children.sliderContainer
-        slider.min = newValue
-        this.#min = slider.min
+        const { hiddenInputRange } = this.children.sliderContainer
+        hiddenInputRange.min = newValue
+        this.#min = hiddenInputRange.min
         this.setAttribute("min", this.#min)
         // Max needs to be recalculated so that all steps fit between min and max
         // Value will be recalculated by max setter if needed.
@@ -114,24 +119,24 @@ class EnhancedSlider extends HTMLElement{
         // It should be possible to rerun the validation
         // by calling this setter with the same value.
         if(this.#isNotNumber(newValue)) return
-        const { slider } = this.children.sliderContainer
+        const { hiddenInputRange } = this.children.sliderContainer
         // Change max to maximum value that can actually be set.
         // The maximum value is determined by step and min (or value if no min).
         // See: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/range
-        const sliderOriginalValue = slider.value
-        slider.max = newValue
+        const sliderOriginalValue = hiddenInputRange.value
+        hiddenInputRange.max = newValue
         // This will be the maximum value possible with the current step and min attributes.
-        slider.value = Number.MAX_VALUE
-        if(slider.value !== slider.max)
+        hiddenInputRange.value = Number.MAX_VALUE
+        if(hiddenInputRange.value !== hiddenInputRange.max)
             console.warn(
                 `${componentName} 'max' attribute was adjusted becuase it was not possible to reach with the combination of 'min', 'max', and 'step' attributes.`,
-                `\nOriginal value: ${slider.max}`,
-                `\nNew value: ${slider.value}`,
+                `\nOriginal value: ${hiddenInputRange.max}`,
+                `\nNew value: ${hiddenInputRange.value}`,
                 "\nSee attributes of: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/range"
             )
-        slider.max = slider.value
-        slider.value = sliderOriginalValue
-        this.#max = slider.max
+        hiddenInputRange.max = hiddenInputRange.value
+        hiddenInputRange.value = sliderOriginalValue
+        this.#max = hiddenInputRange.max
         this.setAttribute("max", this.#max)
         this.#updateDecimalPrecision()
         this.#handleButtonState()
@@ -147,9 +152,9 @@ class EnhancedSlider extends HTMLElement{
     get step(){ return this.#step }
     set step(newValue){
         if(this.#isNotNumber(newValue) || newValue === this.#step) return
-        const { slider } = this.children.sliderContainer
-        slider.step = newValue
-        this.#step = slider.step
+        const { hiddenInputRange } = this.children.sliderContainer
+        hiddenInputRange.step = newValue
+        this.#step = hiddenInputRange.step
         this.setAttribute("step", this.#step)
         // Max needs to be recalculated so that all steps fit between min and max
         this.max = this.#max
@@ -158,24 +163,6 @@ class EnhancedSlider extends HTMLElement{
         this.labels = this.#labels
         // Recalculate to make sure value is a step between min and max
         this.value = this.#value
-    }
-
-    #hideLabels
-    get hideLabels(){ return this.#hideLabels }
-    // The code in attributeChangedCallback looks for a setter with the name of the attribute.
-    set ["hide-labels"](attributeValue){ this.hideLabels = attributeValue }
-    set hideLabels(boolean){
-        // Does not disable if attribute is set with the string "false".
-        // This is how <input> elements do it
-        if(boolean === null || boolean === false){
-            this.removeAttribute("hide-labels")
-            this.#hideLabels = false
-        }
-        else {
-            this.setAttribute("hide-labels", "")
-            this.#hideLabels = true
-        }
-        // Labels visibility is handled in CSS and is dependent on the HTML attribute
     }
 
     #disabled
@@ -191,10 +178,10 @@ class EnhancedSlider extends HTMLElement{
             this.setAttribute("disabled", "")
             this.#disabled = true
         }
-        const { inputBox } = this.children
-        const { slider } = this.children.sliderContainer
+        const { inputBox, sliderContainer } = this.children
+        const { hiddenInputRange } = sliderContainer
         const { decrement, increment } = this.children.buttons
-        slider.disabled = inputBox.disabled = decrement.disabled = increment.disabled = this.#disabled
+        sliderContainer.disabled = hiddenInputRange.disabled = inputBox.disabled = decrement.disabled = increment.disabled = this.#disabled
         this.#handleButtonState()
     }
 
@@ -284,7 +271,6 @@ class EnhancedSlider extends HTMLElement{
         
         // These have to be set after min, max, step are guaranteed to have values
         Array("ticks", "labels").forEach(attribute => {
-            // 
             this[attribute] = this.getAttribute(attribute) ?? "min-max"
             this[attribute] ??= "min-max"
         })
@@ -333,10 +319,22 @@ class EnhancedSlider extends HTMLElement{
         if(value >= max) increment.disabled = true
         else if(!this.disabled) increment.disabled = false
     }
+    #updateSliderPosition(){
+        const { thumb, track } = this.children.sliderContainer.customSlider
+
+        const { value, max, min } = this.#getPropertiesAsNumbers()
+        const percentDecimal = (value - min) / (max - min)
+        const percent = percentDecimal * 100
+        
+        track.fill.style.width = percent.toFixed(3)+"%"
+        const thumbOffset = `(${thumb.offsetWidth}px * ${percentDecimal})`
+        thumb.style.marginLeft = `calc(${percent.toFixed(3)}% - ${thumbOffset})`
+    }
    
-    #configureHTMLElements(inputBox, buttons, slider, sliderContainer, ruler){
-        slider.type = "range"
-        slider.part = "test"
+    #configureHTMLElements(inputBox, buttons, sliderContainer){
+        const { hiddenInputRange } = sliderContainer
+        hiddenInputRange.type = "range"
+        hiddenInputRange.className = "hidden-overlay"
         inputBox.type = "text"
         inputBox.inputMode = "decimal"
         inputBox.autocomplete = "off"
@@ -344,7 +342,7 @@ class EnhancedSlider extends HTMLElement{
         inputBox.part = "input-box"
         // inputBox should not be oninput,
         // the validation might reset the input as you are typing.
-        inputBox.onchange = slider.oninput = (e) => {
+        inputBox.onchange = hiddenInputRange.oninput = (e) => {
             this.value = e.target.value
             this.dispatchEvent(new Event("change"))
         }
@@ -376,17 +374,28 @@ class EnhancedSlider extends HTMLElement{
         new ButtonIntervalWrapper(decrement, () => buttonFunction(-1))
         new ButtonIntervalWrapper(increment, () => buttonFunction(1))
 
+        const { customSlider, ruler } = sliderContainer
+
+        const { thumb, track } = customSlider
+        thumb.className = thumb.part = "thumb"
+        const { fill } = track
+        fill.className = fill.part = "track-fill"
+        track.appendChild(fill)
+        track.className = track.part = "track"
+        customSlider.className = "custom-slider-appearance"
+        customSlider.append(track, thumb)        
+
         const { ticks, labels } = ruler
         ruler.className = "ruler"
-        labels.classList.add("labels")
-        ticks.classList.add("ticks")
+        labels.className = "labels"
+        ticks.className = "ticks"
         // This adds the containers,
         // the individual ticks and labels are created in the property setters
-        ruler.append(ticks, labels)
+        ruler.append(ticks, labels)        
 
-        sliderContainer.part = "slider"
         sliderContainer.className = "slider-container"
-        sliderContainer.append(slider, ruler)
+        sliderContainer.part = "slider"
+        sliderContainer.append(hiddenInputRange, customSlider, ruler)
     }
 
     #addCSS(){
@@ -403,6 +412,7 @@ class EnhancedSlider extends HTMLElement{
             color: light-dark(black, white);
             user-select: none;
             &:host([hidden]) { display: none !important; }
+            &:host(:disabled) { filter: grayscale(1); }
         }`)
 
         // Needs the webkit specific properties! 
@@ -429,16 +439,13 @@ class EnhancedSlider extends HTMLElement{
             -webkit-touch-callout: none;
 
             &:enabled:is(:hover, :active) { background-color: revert; }
-            &:disabled { 
-                opacity: 0.4; 
-                color: gray; 
-            }
+            &:disabled { color: gray; opacity: 0.4; }
         }`)
 
         // width is set by Javascript 
         css.insertRule(`input[type = "text"] {
             z-index: 2;
-            grid-row: 3;
+            grid-row: 3 / 5;
             grid-column: 2;        
             min-width: fit-content;
             text-align: center;
@@ -450,6 +457,7 @@ class EnhancedSlider extends HTMLElement{
             color: inherit;
             margin: auto;
             margin-block: 2px;
+            &:disabled { opacity: 0.4 }
             &:host([labels = "all"]) > input[type = "text"]{
                 grid-row: 1;
             }
@@ -458,108 +466,88 @@ class EnhancedSlider extends HTMLElement{
             grid-row: 1;
         }`)
         
-        css.insertRule(`input[type = "range"] {
-            z-index: 3;
-            align-self: center;
-            width: 100%;
+        css.insertRule(`input[type = "range"].hidden-overlay {
+            z-index: 2;
+            position: absolute;
+            inset: 0;
             min-width: 0;
             margin: 0;
-            padding: 0;
-        }`)
-
-        // These properties replaces the default appearance of <input type="range">
-        // 
-        const sliderStyleReplacement = {
-            // hover color-mix does not work inside &:hover
-            container: `
-                --track-height: 4px;
-                --track-radius: var(--track-height);
-                --track-color-before: light-dark(dodgerblue, #4ca7ff);
-                --track-color-after: light-dark(gainsboro, #353535);
-                
-                --thumb-height: 1rem;
-                --thumb-width: 1rem;
-                --thumb-radius: var(--thumb-height);
-                --thumb-color: white;
-                --thumb-border: 2px solid var(--track-color-before);
-                --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
-                
-                --hover-track-before: color-mix(in oklch, var(--track-color-before), white 10%);
-                --hover-track-after: color-mix(in oklch, var(--track-color-after), gray 10%);
-                --active-thumb-shadow: var(--thumb-shadow), inset 0 0 0 4px var(--hover-track-before);
-            `,
-            // Setting height of the input to height of thumb makes it
-            // possible to change value by clicking above or below the track.
-            // This is how native <input> works and is better for mobile.
-            input: `
-                appearance: none;
-                height: max(
-                    var(--track-height),
-                    var(--thumb-height)
-                );
-                background-color: transparent;
-                &:enabled:hover{
-                    --track-color-before: var(--hover-track-before);
-                    --track-color-after: var(--hover-track-after);
-                    --thumb-border: 2px solid var(--track-color-before);
-                    --thumb-shadow: 0 1px 2px hsla(0 0% 0% / 50%);
-                    filter: saturate(150%);
-                }
-                &:enabled:active{
-                    --thumb-border: calc(min(var(--thumb-width), var(--thumb-height)) *0.4) solid var(--hover-track-before);
-                }
-            `,
-            // box-sizing: border-box because input height is height of thumb and should include border
-            thumb: `
-                appearance: none;
-                height: var(--thumb-height);
-                width: var(--thumb-width);
-                box-sizing: border-box;
-                border-radius: var(--thumb-radius);
-                border: var(--thumb-border);
-                box-shadow: var(--thumb-shadow);
-                background-color: var(--thumb-color);
-                transition: 100ms border-width linear;
-            `,
-            track: `
-                height: var(--track-height);
-                border-radius: var(--track-radius);
-                background-image: linear-gradient(to right,
-                    var(--track-color-before) 50%,
-                    var(--track-color-after) 50%
-                );
-                background-size: 200%;
-                background-position-x: calc(100% - var(--value-percent));
-            `
-        }
-
-        css.insertRule(`@supports selector(::-moz-range-thumb){
-            .slider-container { ${sliderStyleReplacement.container} }
-            input[type = "range"] { ${sliderStyleReplacement.input} }
-            input[type = "range"]::-moz-range-track { ${sliderStyleReplacement.track} }
-            input[type = "range"]::-moz-range-thumb { ${sliderStyleReplacement.thumb} }
-        }`)
-        // This is needed for some reason to center track and thumb vertically.
-        // Chrome says input has display:inline-block; so it shouldnt even do anything.
-        css.insertRule(`@supports selector(::-webkit-slider-thumb){
-            .slider-container { ${sliderStyleReplacement.container} }
-            input[type = "range"] { 
-                ${sliderStyleReplacement.input}
-                align-items: center;
-            }
-            input[type = "range"]::-webkit-slider-runnable-track { ${sliderStyleReplacement.track} }
-            input[type = "range"]::-webkit-slider-thumb {
-                ${sliderStyleReplacement.thumb} 
-                margin-top: calc(var(--track-height) / 2 - var(--thumb-height) / 2);
-            }
+            opacity: 0;
         }`)
 
         css.insertRule(`.slider-container {
             grid-row: 2 / 4;
             grid-column: 2;
-            position: relative;
             display: grid;
             grid-template-rows: subgrid;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            border: 0;
+
+            &:disabled { filter: contrast(0.8) opacity(0.5); }
+            &:enabled:hover{
+                --track-background: light-dark(#d2d2d2, #3c3c3c);
+                --track-fill-background: light-dark(#409cff, #44a1ff);
+                --thumb-shadow: 0 1px 2px hsla(0 0% 0% / 50%);
+            }
+            &:enabled:active{
+                --thumb-border: 
+                    calc(min(var(--thumb-width), var(--thumb-height)) *0.35) 
+                    solid var(--track-fill-background);
+            }
+
+            --thumb-width: 1rem;
+            --thumb-height: 1rem;
+            --thumb-radius: var(--thumb-height);
+            --thumb-background: white;
+            --thumb-border: 2px solid var(--track-fill-background);
+            --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
+
+            --track-height: 4px;
+            --track-radius: var(--track-height);
+            --track-background: light-dark(gainsboro, #353535);
+            --track-fill-background: light-dark(dodgerblue, #3e94e8);
+
+            --hover-track: color-mix(in oklch, var(--track-background), gray 10%);
+            --hover-track-fill: color-mix(in oklch, var(--track-fill-background), white 10%);            
+        }`)
+
+        css.insertRule(`.custom-slider-appearance{
+            display: flex;
+            align-items: center;
+            position: relative;
+            display: grid;
+            /* circular-out */
+            --track-transition: 100ms cubic-bezier(0.08, 0.82, 0.17, 1);
+
+            & > .thumb {
+                grid-area: 1/1;
+                width: var(--thumb-width);
+                height: var(--thumb-height);
+                border-radius: var(--thumb-radius);
+                background: var(--thumb-background);
+                border: var(--thumb-border);
+                box-shadow: var(--thumb-shadow);
+                box-sizing: border-box;
+                transition: 
+                    border-width 50ms linear,
+                    margin-left var(--track-transition);
+            }
+            & > .track{
+                    grid-area: 1/1;
+                    width: 100%;
+                    height: var(--track-height);
+                    border-radius: var(--track-radius);
+                    background: var(--track-background);
+                    overflow: hidden;
+                & > .track-fill{
+                    display: block;
+                    height: 100%;
+                    background: var(--track-fill-background);
+                    transition: width var(--track-transition);
+                }
+            }
         }`)
 
         css.insertRule(`.ruler {
