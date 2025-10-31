@@ -319,26 +319,28 @@ class EnhancedSlider extends HTMLElement{
         if(value >= max) increment.disabled = true
         else if(!this.disabled) increment.disabled = false
     }
-    #updateSliderPosition(){
-        const { thumb, track } = this.children.sliderContainer.customSlider
-
+    #updateSliderPosition(){        
         const { value, max, min } = this.#getPropertiesAsNumbers()
         const percentDecimal = (value - min) / (max - min)
         const percent = percentDecimal * 100
         
-        track.fill.style.width = percent.toFixed(3)+"%"
-        const thumbOffset = `(${thumb.offsetWidth}px * ${percentDecimal})`
-        thumb.style.marginLeft = `calc(${percent.toFixed(3)}% - ${thumbOffset})`
+        const { thumb, track } = this.children.sliderContainer.customSlider
+        const thumbOffset = thumb.offsetWidth * percentDecimal
+
+        thumb.style.left = `calc(${percent.toFixed(3)}% - ${thumbOffset.toFixed(3)}px)`
+        track.fill.style.transform = `translateX(calc(
+            ${(percent-100).toFixed(3)}% +
+            ${((thumb.offsetWidth / 2) - thumbOffset).toFixed(3)}px
+        ))` 
     }
    
     #configureHTMLElements(inputBox, buttons, sliderContainer){
         const { hiddenInputRange } = sliderContainer
         hiddenInputRange.type = "range"
         hiddenInputRange.className = "hidden-overlay"
-        inputBox.type = "text"
+        inputBox.type = "number"
         inputBox.inputMode = "decimal"
         inputBox.autocomplete = "off"
-        inputBox.size = "2"
         inputBox.part = "input-box"
         // inputBox should not be oninput,
         // the validation might reset the input as you are typing.
@@ -393,7 +395,7 @@ class EnhancedSlider extends HTMLElement{
         // the individual ticks and labels are created in the property setters
         ruler.append(ticks, labels)        
 
-        sliderContainer.className = "slider-container"
+        sliderContainer.className = "slider-area"
         sliderContainer.part = "slider"
         sliderContainer.append(hiddenInputRange, customSlider, ruler)
     }
@@ -443,11 +445,12 @@ class EnhancedSlider extends HTMLElement{
         }`)
 
         // width is set by Javascript 
-        css.insertRule(`input[type = "text"] {
+        css.insertRule(`input[type = "number"] {
+            appearance: textfield;
             z-index: 2;
             grid-row: 3 / 5;
             grid-column: 2;        
-            min-width: fit-content;
+            min-width: 3ch;
             text-align: center;
             font-size: 0.9rem;
             padding: 2px;
@@ -462,25 +465,29 @@ class EnhancedSlider extends HTMLElement{
                 grid-row: 1;
             }
         }`)
-        css.insertRule(`:host([labels = "all"]) > input[type = "text"]{
+        css.insertRule(`input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }`)
+        css.insertRule(`:host([labels = "all"]) > input[type = "number"]{
             grid-row: 1;
         }`)
         
         css.insertRule(`input[type = "range"].hidden-overlay {
             z-index: 2;
-            position: absolute;
-            inset: 0;
+            grid-row: 2/4;
+            grid-column: 2;
             min-width: 0;
             margin: 0;
             opacity: 0;
         }`)
-
-        css.insertRule(`.slider-container {
-            grid-row: 2 / 4;
-            grid-column: 2;
-            display: grid;
-            grid-template-rows: subgrid;
-            position: relative;
+        
+        // display:grid; grid-template-rows:subgrid; 
+        // does not work on <fieldset> in Chrome!
+        // display:contents does work similiarly but with different
+        // values for rows and columns on children.
+        css.insertRule(`.slider-area {
+            display: contents;
             margin: 0;
             padding: 0;
             border: 0;
@@ -514,15 +521,15 @@ class EnhancedSlider extends HTMLElement{
         }`)
 
         css.insertRule(`.custom-slider-appearance{
-            display: flex;
-            align-items: center;
-            position: relative;
+            grid-area: 2/2;
             display: grid;
+            align-items: center;
             /* circular-out */
             --track-transition: 100ms cubic-bezier(0.08, 0.82, 0.17, 1);
 
             & > .thumb {
                 grid-area: 1/1;
+                position: relative;
                 width: var(--thumb-width);
                 height: var(--thumb-height);
                 border-radius: var(--thumb-radius);
@@ -530,9 +537,10 @@ class EnhancedSlider extends HTMLElement{
                 border: var(--thumb-border);
                 box-shadow: var(--thumb-shadow);
                 box-sizing: border-box;
+                will-change: border-width, left;
                 transition: 
                     border-width 50ms linear,
-                    margin-left var(--track-transition);
+                    left var(--track-transition);
             }
             & > .track{
                     grid-area: 1/1;
@@ -544,13 +552,17 @@ class EnhancedSlider extends HTMLElement{
                 & > .track-fill{
                     display: block;
                     height: 100%;
+                    width: 100%;
                     background: var(--track-fill-background);
-                    transition: width var(--track-transition);
+                    will-change: transform;
+                    transition: transform var(--track-transition);
                 }
             }
         }`)
 
         css.insertRule(`.ruler {
+            grid-row: 3;
+            grid-column: 2;
             padding-inline: calc(var(--thumb-width, 18px) / 2);
             margin-top: -2px;
 
