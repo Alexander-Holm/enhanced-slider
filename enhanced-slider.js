@@ -4,6 +4,7 @@ const componentName = "enhanced-slider"
 
 class EnhancedSlider extends HTMLElement{
     static formAssociated = true
+    intervalEmitter = new IntervalEmitter()
     constructor(){
         super()
         this.connected = false
@@ -242,6 +243,47 @@ class EnhancedSlider extends HTMLElement{
         }
     }
 
+    stepUp(){
+        const { value, step, max } = this.#getPropertiesAsNumbers()
+        if(value < max) this.value = value + step
+    }
+    stepDown(){        
+        const { value, step, min } = this.#getPropertiesAsNumbers()
+        if(value > min) this.value = value - step
+    }
+    #stepUpContinuous(event){
+        event.preventDefault()
+        const notRepeated = (event.repeat === undefined || event.repeat === false)
+        const { value, max } = this.#getPropertiesAsNumbers()
+        if(notRepeated && value < max){
+            const element = event.currentTarget
+            this.intervalEmitter.start(() => {
+                const { value, max } = this.#getPropertiesAsNumbers()
+                if(value < max){
+                    this.stepUp()
+                    this.dispatchEvent(new Event("change"))
+                } 
+                else this.intervalEmitter.stop(element)
+            }, element)
+        }
+    }
+    #stepDownContinuous(event){
+        event.preventDefault()
+        const notRepeated = (event.repeat === undefined || event.repeat === false)
+        const { value, min } = this.#getPropertiesAsNumbers()
+        if(notRepeated && value > min){
+            const element = event.currentTarget
+            this.intervalEmitter.start(() => {
+                const { value, min } = this.#getPropertiesAsNumbers()
+                if(value > min) {
+                    this.stepDown()
+                    this.dispatchEvent(new Event("change"))
+                }
+                else this.intervalEmitter.stop(element)
+            }, element)
+        }
+    }
+
     #initializeProperties(){
         // boolean attributes
         Array("disabled").forEach(attribute => {
@@ -283,6 +325,7 @@ class EnhancedSlider extends HTMLElement{
         const step = Number(this.#step)
         return { min, max, value, step }
     }
+    
     // isNaN() alone does not work for checking if a variable is not a number.
     // null, "", [] will be interpreted as numbers and return false!
     // See: https://stackoverflow.com/a/68821383/25594533
@@ -338,15 +381,37 @@ class EnhancedSlider extends HTMLElement{
         const { hiddenInputRange } = sliderContainer
         hiddenInputRange.type = "range"
         hiddenInputRange.className = "hidden-overlay"
-        inputBox.type = "number"
-        inputBox.inputMode = "decimal"
+        inputBox.type = "text"        
         inputBox.autocomplete = "off"
         inputBox.part = "input-box"
+
+        hiddenInputRange.onkeyup = hiddenInputRange.onblur = this.intervalEmitter.stop
+        inputBox.onkeyup = inputBox.onblur = this.intervalEmitter.stop
+        // Handle dragging slider and writing in inputBox
         // inputBox should not be oninput,
         // the validation might reset the input as you are typing.
-        inputBox.onchange = hiddenInputRange.oninput = (e) => {
-            this.value = e.target.value
+        hiddenInputRange.oninput = inputBox.onchange = (event) => {
+            this.value = event.currentTarget.value
             this.dispatchEvent(new Event("change"))
+        }
+        // Handle keyboard
+        hiddenInputRange.onkeydown = (event) => {
+            switch(event.key){
+                case "ArrowUp":
+                case "ArrowRight":
+                    this.#stepUpContinuous(event)
+                    break;
+                case "ArrowDown":
+                case "ArrowLeft":
+                    this.#stepDownContinuous(event)
+                    break;
+            }
+        }
+        inputBox.onkeydown = (event) => {
+            switch(event.key){
+                case "ArrowUp": this.#stepUpContinuous(event); break;
+                case "ArrowDown": this.#stepDownContinuous(event); break;
+            }
         }
 
         const { decrement, increment } = buttons
@@ -368,13 +433,10 @@ class EnhancedSlider extends HTMLElement{
             </svg> `
         decrement.append(decrementIconSlot)
         increment.append(incrementIconSlot)
-        const buttonFunction = (stepDirection) => {
-            const { value, step } = this.#getPropertiesAsNumbers()
-            this.value = value + (step * stepDirection)
-            this.dispatchEvent(new Event("change"))
-        }
-        new ButtonIntervalWrapper(decrement, () => buttonFunction(-1))
-        new ButtonIntervalWrapper(increment, () => buttonFunction(1))
+        decrement.onpointerup = decrement.onpointerleave = decrement.onpointercancel = this.intervalEmitter.stop
+        increment.onpointerup = increment.onpointerleave = increment.onpointercancel = this.intervalEmitter.stop
+        decrement.onpointerdown = (event) => this.#stepDownContinuous(event)
+        increment.onpointerdown = (event) => this.#stepUpContinuous(event)
 
         const { customSlider, ruler } = sliderContainer
 
@@ -441,11 +503,11 @@ class EnhancedSlider extends HTMLElement{
             -webkit-touch-callout: none;
 
             &:enabled:is(:hover, :active) { background-color: revert; }
-            &:disabled { color: gray; opacity: 0.4; }
+            &:disabled { pointer-events: none; color: gray; opacity: 0.4; }
         }`)
 
         // width is set by Javascript 
-        css.insertRule(`input[type = "number"] {
+        css.insertRule(`input[type = "text"] {
             appearance: textfield;
             z-index: 2;
             grid-row: 3 / 5;
@@ -469,7 +531,7 @@ class EnhancedSlider extends HTMLElement{
             -webkit-appearance: none;
             margin: 0;
         }`)
-        css.insertRule(`:host([labels = "all"]) > input[type = "number"]{
+        css.insertRule(`:host([labels = "all"]) > input[type = "text"]{
             grid-row: 1;
         }`)
         
@@ -604,53 +666,29 @@ class EnhancedSlider extends HTMLElement{
     }
 }
 
-class ButtonIntervalWrapper{
-    intervals = [150, 140, 130, 100, 80, 60, 50]
-    intervalsCount = this.intervals.length
+class IntervalEmitter{
+    intervals = [200, 150, 100, 100, 60, 60, 30]
     intervalIndex = 0
     onInterval = null
     timerId = null
-    button = null
-    constructor(htmlButton, onInterval){
-        this.button = htmlButton
-        this.onInterval = onInterval
-        // Have to use bind, otherwise "this" inside the function will refer to the clicked button.
-        // Arrow functions also work.
-        htmlButton.onpointerup = htmlButton.onpointerleave = htmlButton.onpointercancel = this.stopInterval.bind(this)
-        // Could check for "Enter" on keyup but who cares
-        htmlButton.onblur = htmlButton.onkeyup =this.stopInterval.bind(this)
-        htmlButton.onpointerdown = (event) => {
-            // If a new press happens while the timer is running it should restart.
-            // This makes several fast clicks work correctly.
-            if(this.timerId !== null) 
-                this.stopInterval()
-            this.startInterval(event)
-        }
-        htmlButton.onkeydown = (event) => {
-            if(event.key === "Enter" && event.repeat === false){
-                if(this.timerId !== null)
-                    this.stopInterval()
-                this.startInterval(event)
-            }
-        }
-    }
-    startInterval(event){
-        if(this.button.disabled){
-            this.stopInterval()
-            return
-        }
-        this.onInterval?.call()
-        let interval
-        if(this.intervalIndex < this.intervalsCount)
-            interval = this.intervals[this.intervalIndex++]
-        else interval = this.intervals[this.intervalsCount - 1]
-        // setTimeout argument needs to be an arrow function
-        this.timerId = setTimeout(() => this.startInterval(event), interval)
-    }
-    stopInterval(){
+    stop = () => {
         clearTimeout(this.timerId)
         this.timerId = null
         this.intervalIndex = 0
+        this.onInterval = null
+    }
+    start = (onInterval) => {
+        this.onInterval = onInterval
+        if(this.timerId !== null) this.stop()
+        this.loop()
+    }
+    loop = () => {
+        const interval = this.intervals[this.intervalIndex]
+        // Stay at the last index until stopped
+        if(this.intervalIndex < this.intervals.length - 1)
+            this.intervalIndex++
+        this.timerId = setTimeout(this.loop, interval)
+        this.onInterval?.call()
     }
 }
 
