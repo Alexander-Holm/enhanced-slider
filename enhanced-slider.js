@@ -463,6 +463,21 @@ class EnhancedSlider extends HTMLElement{
         sliderContainer.className = "slider-area"
         sliderContainer.part = "slider"
         sliderContainer.append(hiddenInputRange, customSlider, ruler)
+
+        // Only inputBox should be visible to screenreaders and accessible by tabbing.
+        // Anything that can be done through the other controls is possible
+        // with keyboard interaction on the inputBox.
+        // For example the buttons on <input type="number"> are not tabbable.
+        decrement.ariaHidden = true
+        increment.ariaHidden = true
+        hiddenInputRange.ariaHidden = true
+        // Dont't read all labels.
+        // If screenreaders want to announce min and max it
+        // can read it from inputBox.ariaValueMin and max.
+        ruler.ariaHidden = true
+        decrement.tabIndex = -1
+        increment.tabIndex = -1
+        hiddenInputRange.tabIndex = -1
     }
 
     #addCSS(){
