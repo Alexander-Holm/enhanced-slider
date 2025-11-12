@@ -85,7 +85,7 @@ class EnhancedSlider extends HTMLElement{
         const { hiddenInputRange } = this.children.sliderContainer
         hiddenInputRange.value = Number(newValue).toFixed(this.decimalPrecision)
         // Some browsers strip trailing decimals from slider.value, add them again for consistency.
-        this.#value = inputBox.value = Number(hiddenInputRange.value).toFixed(this.decimalPrecision)
+        this.#value = inputBox.value = inputBox.ariaValueNow = Number(hiddenInputRange.value).toFixed(this.decimalPrecision)
         this.internals.setFormValue(this.#value)
         
         this.#updateSliderPosition()
@@ -97,9 +97,10 @@ class EnhancedSlider extends HTMLElement{
     get min(){ return this.#min }
     set min(newValue){
         if(this.#isNotNumber(newValue) || newValue === this.#min) return
+        const { inputBox } = this.children
         const { hiddenInputRange } = this.children.sliderContainer
         hiddenInputRange.min = newValue
-        this.#min = hiddenInputRange.min
+        this.#min = inputBox.ariaValueMin = hiddenInputRange.min
         this.setAttribute("min", this.#min)
         // Max needs to be recalculated so that all steps fit between min and max
         // Value will be recalculated by max setter if needed.
@@ -120,6 +121,7 @@ class EnhancedSlider extends HTMLElement{
         // It should be possible to rerun the validation
         // by calling this setter with the same value.
         if(this.#isNotNumber(newValue)) return
+        const { inputBox } = this.children
         const { hiddenInputRange } = this.children.sliderContainer
         // Change max to maximum value that can actually be set.
         // The maximum value is determined by step and min (or value if no min).
@@ -137,7 +139,7 @@ class EnhancedSlider extends HTMLElement{
             )
         hiddenInputRange.max = hiddenInputRange.value
         hiddenInputRange.value = sliderOriginalValue
-        this.#max = hiddenInputRange.max
+        this.#max = inputBox.ariaValueMax = hiddenInputRange.max
         this.setAttribute("max", this.#max)
         this.#updateDecimalPrecision()
         this.#handleButtonState()
@@ -381,8 +383,9 @@ class EnhancedSlider extends HTMLElement{
         const { hiddenInputRange } = sliderContainer
         hiddenInputRange.type = "range"
         hiddenInputRange.className = "hidden-overlay"
-        inputBox.type = "text"        
+        inputBox.type = "text"
         inputBox.autocomplete = "off"
+        inputBox.role = "spinbutton"
         inputBox.part = "input-box"
 
         hiddenInputRange.onkeyup = hiddenInputRange.onblur = this.intervalEmitter.stop
