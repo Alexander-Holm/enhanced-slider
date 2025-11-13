@@ -8,24 +8,36 @@ class EnhancedSlider extends HTMLElement{
     constructor(){
         super()
         this.connected = false
-        // internals is needed to set the value that is submitted with a form
+        // internals is needed to get associated labels and
+        // set the value that is submitted with a form.
         this.internals = this.attachInternals()
-        this.attachShadow({mode: "open"})
+        // delegatesFocus:true to focus the first input (appears first in HTML) when an outside label is clicked.
+        // It also delegates focus when other non-clickable parts of this component is clicked.
+        // Delegating focus when non-clickable parts are clicked is not wanted becuase it 
+        // brings up the keyboard on mobile if you misclick below the slider or the buttons.
+        // pointer-events to none and auto in CSS for the relevant elements prevents this unwanted focus.
+        this.attachShadow({mode: "open", delegatesFocus: true})
         
         const { inputBox, buttons, sliderContainer } = this.children
         // This does not insert any HTML into the document,
         // that can only happen in connectedCallback()
         this.#configureHTMLElements(inputBox, buttons, sliderContainer)
         this.#addCSS()
+        // For screanreaders.
+        // Because there are two focusable elements described by the same outside label
+        this.role = "group"
     }
+    
     // These functions ending with callback are custom element lifecycle callbacks.
     // They are not called from in here and needs to have these exact names.
     connectedCallback(){
         this.#initializeProperties()
         const { sliderContainer, inputBox, buttons } = this.children
-        this.shadowRoot.append(buttons.decrement, sliderContainer, buttons.increment, inputBox)
+        // inputBox needs to be first in order to receive focus when clicking an associated label. 
+        // tab-index does not matter, the first input will always receive the focus.
+        this.shadowRoot.append(inputBox, sliderContainer, buttons.decrement, buttons.increment)
         // Has to be done after adding all elements to DOM,
-        // because the function reads thumb.offsetWidth
+        // because the function reads thumb.offsetWidth.
         this.#updateSliderPosition()
         this.connected = true
     }
@@ -245,6 +257,8 @@ class EnhancedSlider extends HTMLElement{
         }
     }
 
+    focus(){ this.children.inputBox.focus() }
+
     stepUp(){
         const { value, step, max } = this.#getPropertiesAsNumbers()
         if(value < max) this.value = value + step
@@ -460,24 +474,24 @@ class EnhancedSlider extends HTMLElement{
         // the individual ticks and labels are created in the property setters
         ruler.append(ticks, labels)        
 
-        sliderContainer.className = "slider-area"
-        sliderContainer.part = "slider"
+        sliderContainer.className = sliderContainer.part = "slider"
         sliderContainer.append(hiddenInputRange, customSlider, ruler)
 
-        // Only inputBox should be visible to screenreaders and accessible by tabbing.
-        // Anything that can be done through the other controls is possible
-        // with keyboard interaction on the inputBox.
-        // For example the buttons on <input type="number"> are not tabbable.
-        decrement.ariaHidden = true
-        increment.ariaHidden = true
-        hiddenInputRange.ariaHidden = true
         // Dont't read all labels.
         // If screenreaders want to announce min and max it
         // can read it from inputBox.ariaValueMin and max.
         ruler.ariaHidden = true
+        // The buttons don't need to be tabbable or visible to screenreaders.
+        // Both inputBox and slider provice the same functionality to keyboard users.
+        decrement.ariaHidden = true
+        increment.ariaHidden = true
         decrement.tabIndex = -1
         increment.tabIndex = -1
-        hiddenInputRange.tabIndex = -1
+        // Make tab order same as visual order.
+        // inputBox has to come first in HTML in order to receive
+        // focus when a label is clicked.
+        hiddenInputRange.tabIndex = 1
+        inputBox.tabIndex = 2
     }
 
     #addCSS(){
@@ -495,6 +509,13 @@ class EnhancedSlider extends HTMLElement{
             user-select: none;
             &:host([hidden]) { display: none !important; }
             &:host(:disabled) { filter: grayscale(1); }
+
+            pointer-events: none;
+            & > input[type = "text"], & > .slider, & > button { 
+                pointer-events: auto;
+            }
+
+            --focus-outline: auto;
         }`)
 
         // Needs the webkit specific properties! 
@@ -521,7 +542,7 @@ class EnhancedSlider extends HTMLElement{
             -webkit-touch-callout: none;
 
             &:enabled:is(:hover, :active) { background-color: revert; }
-            &:disabled { pointer-events: none; color: gray; opacity: 0.4; }
+            &:disabled { pointer-events: none; color: gray; opacity: 0.4; }            
         }`)
 
         // width is set by Javascript 
@@ -540,6 +561,7 @@ class EnhancedSlider extends HTMLElement{
             color: inherit;
             margin: auto;
             margin-block: 2px;
+            &:focus { outline: var(--focus-outline, auto); }
             &:disabled { opacity: 0.4 }
             &:host([labels = "all"]) > input[type = "text"]{
                 grid-row: 1;
@@ -554,19 +576,23 @@ class EnhancedSlider extends HTMLElement{
         }`)
         
         css.insertRule(`input[type = "range"].hidden-overlay {
-            z-index: 2;
+            z-index: 1;
             grid-row: 2/4;
             grid-column: 2;
             min-width: 0;
             margin: 0;
             opacity: 0;
+            &:focus-visible + .custom-slider-appearance {
+                outline: var(--focus-outline, auto);
+                outline-offset: 2px;
+            }
         }`)
         
         // display:grid; grid-template-rows:subgrid; 
         // does not work on <fieldset> in Chrome!
         // display:contents does work similiarly but with different
         // values for rows and columns on children.
-        css.insertRule(`.slider-area {
+        css.insertRule(`.slider {
             display: contents;
             margin: 0;
             padding: 0;
@@ -597,13 +623,18 @@ class EnhancedSlider extends HTMLElement{
             --track-fill-background: light-dark(dodgerblue, #3e94e8);
 
             --hover-track: color-mix(in oklch, var(--track-background), gray 10%);
-            --hover-track-fill: color-mix(in oklch, var(--track-fill-background), white 10%);            
+            --hover-track-fill: color-mix(in oklch, var(--track-fill-background), white 10%);
         }`)
-
+        // Highest z-index for the focus outline to not fall behind input-box.
+        // No pointer-events so than the inputs behind can be clicked!
+        // border-radius for focus outline.
         css.insertRule(`.custom-slider-appearance{
+            z-index: 3;
+            pointer-events: none;
             grid-area: 2/2;
             display: grid;
             align-items: center;
+            border-radius: var(--track-radius);
             /* circular-out */
             --track-transition: 100ms cubic-bezier(0.08, 0.82, 0.17, 1);
 
