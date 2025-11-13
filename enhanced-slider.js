@@ -257,8 +257,6 @@ class EnhancedSlider extends HTMLElement{
         }
     }
 
-    focus(){ this.children.inputBox.focus() }
-
     stepUp(){
         const { value, step, max } = this.#getPropertiesAsNumbers()
         if(value < max) this.value = value + step
@@ -267,20 +265,21 @@ class EnhancedSlider extends HTMLElement{
         const { value, step, min } = this.#getPropertiesAsNumbers()
         if(value > min) this.value = value - step
     }
+    // These should only be called from user events as they dispatch onchange events
     #stepUpContinuous(event){
         event.preventDefault()
         const notRepeated = (event.repeat === undefined || event.repeat === false)
         const { value, max } = this.#getPropertiesAsNumbers()
         if(notRepeated && value < max){
             const element = event.currentTarget
-            this.intervalEmitter.start(() => {
+            this.intervalEmitter.start(element, () => {
                 const { value, max } = this.#getPropertiesAsNumbers()
                 if(value < max){
                     this.stepUp()
                     this.dispatchEvent(new Event("change"))
                 } 
                 else this.intervalEmitter.stop(element)
-            }, element)
+            })
         }
     }
     #stepDownContinuous(event){
@@ -289,14 +288,14 @@ class EnhancedSlider extends HTMLElement{
         const { value, min } = this.#getPropertiesAsNumbers()
         if(notRepeated && value > min){
             const element = event.currentTarget
-            this.intervalEmitter.start(() => {
+            this.intervalEmitter.start(element, () => {
                 const { value, min } = this.#getPropertiesAsNumbers()
                 if(value > min) {
                     this.stepDown()
                     this.dispatchEvent(new Event("change"))
                 }
                 else this.intervalEmitter.stop(element)
-            }, element)
+            })
         }
     }
 
@@ -402,8 +401,8 @@ class EnhancedSlider extends HTMLElement{
         inputBox.role = "spinbutton"
         inputBox.part = "input-box"
 
-        hiddenInputRange.onkeyup = hiddenInputRange.onblur = this.intervalEmitter.stop
-        inputBox.onkeyup = inputBox.onblur = this.intervalEmitter.stop
+        hiddenInputRange.onkeyup = hiddenInputRange.onblur = () => this.intervalEmitter.stop(hiddenInputRange)
+        inputBox.onkeyup = inputBox.onblur = () => this.intervalEmitter.stop(inputBox)
         // Handle dragging slider and writing in inputBox
         // inputBox should not be oninput,
         // the validation might reset the input as you are typing.
@@ -450,8 +449,17 @@ class EnhancedSlider extends HTMLElement{
             </svg> `
         decrement.append(decrementIconSlot)
         increment.append(incrementIconSlot)
-        decrement.onpointerup = decrement.onpointerleave = decrement.onpointercancel = this.intervalEmitter.stop
-        increment.onpointerup = increment.onpointerleave = increment.onpointercancel = this.intervalEmitter.stop
+        // Buttons should not receive focus, instead focus the inputBox,
+        // similiar to <input type=number">
+        decrement.onpointerup = decrement.onpointerleave = decrement.onpointercancel = 
+        increment.onpointerup = increment.onpointerleave = increment.onpointercancel = (event) => {
+            //Don't stop the interval when hovering a button if that button is not what started it.
+            const button = event.currentTarget
+            if(this.intervalEmitter.currentUser === button){
+                this.intervalEmitter.stop(button)
+                inputBox.focus()
+            }
+        } 
         decrement.onpointerdown = (event) => this.#stepDownContinuous(event)
         increment.onpointerdown = (event) => this.#stepUpContinuous(event)
 
@@ -720,15 +728,19 @@ class IntervalEmitter{
     intervalIndex = 0
     onInterval = null
     timerId = null
-    stop = () => {
+    currentUser = null
+    stop = (caller) => {
+        if(caller !== this.currentUser) return
         clearTimeout(this.timerId)
         this.timerId = null
         this.intervalIndex = 0
         this.onInterval = null
+        this.currentUser = null
     }
-    start = (onInterval) => {
+    start = (caller, onInterval) => {
+        if(this.timerId !== null) this.stop(this.currentUser)
+        this.currentUser = caller
         this.onInterval = onInterval
-        if(this.timerId !== null) this.stop()
         this.loop()
     }
     loop = () => {
