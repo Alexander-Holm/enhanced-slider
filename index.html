@@ -7,7 +7,7 @@
     <title>enhanced-slider demo</title>
     <style>
         html{ 
-            color-scheme: light dark; 
+            color-scheme: light dark;
             font-family: sans-serif;
         }
         body{
@@ -30,19 +30,33 @@
             display: block;
             font-size: 1.1rem;
             font-weight: 600;
+            text-align: center;
         }
         code{ text-wrap: nowrap;}
 
         form{
-            border: 1px solid hsla(0, 0%, 50%, 30%);
+            border: 1px solid hsl(0 0% 50% / 30%);
             padding: 20px;
-            max-width: 36rem;
+            max-width: 30rem;
             margin-inline: auto;
-            margin-block: 80px;
-            & > h2{ margin-bottom: 30px; }
-            & > #component-id{ 
-                margin-block: 60px; 
+            margin-block: 60px;
+            text-align: center;
+            & > h2{ margin-bottom: 60px; }
+            & > #component-id{
                 margin-inline: auto;
+            }
+            & > fieldset.browser-defaults{
+                width: fit-content;
+                margin-inline: auto;
+                margin-block: 60px;
+                border: 1px solid hsl(0 0% 50% / 15%);
+                & > legend{ margin-inline: auto; }
+                & > input{ 
+                    display: block; 
+                    margin-inline: auto;
+                    margin-block: 10px;
+                }
+                & > input[type="range"]{ width: 16rem; }
             }
             & > .buttons{
                 display: flex;
@@ -73,6 +87,22 @@
             &::part(button):enabled:active{ box-shadow: 0 0 10px 4px #ff3efb}
             &::part(decrement){ background-image: linear-gradient(to left, #ff2424, #f93aff); }
             &::part(increment){ background-image: linear-gradient(to right, #ff2424, #f93aff); }
+            &::part(slider){ --track-color-before: purple; }
+        }
+        #track-thumb:disabled{
+            &::part(slider){ outline: 2px solid coral; }
+        }
+        #track-thumb::part(slider){
+            --test: aqua;
+        }
+        #track-thumb::part(slider):hover{
+            --track-height: 10px;
+            --track-color-before: lightblue;
+            --thumb-width: 2rem;
+            --thumb-height: 1rem;
+            --thumb-color: gray;
+            --thumb-border: 2px solid white;
+            --test: crimson;
         }
         /* Invert preference */
         .dark-mode{
@@ -92,25 +122,34 @@
         function onSubmit(e){
             e.preventDefault()
             const formData = new FormData(e.target)
-            const value = formData.get("component-name")
-            alert(`Value: ${value}`)
+            let outputText = ""
+            for (const [name, value] of formData.entries()){
+                outputText += `\n${name}\n${value}\n`
+            }
+            alert(outputText)
         }
     </script>
 </head>
 <body>
     <h1>enhanced-slider demo</h1>
     <a href="https://github.com/Alexander-Holm/enhanced-slider" target="_blank">Github</a>
+
     <form onsubmit="onSubmit(event)">
         <h2>Form</h2>
-        <label for="component-id">Label</label>
-        <span>Clicking an associated label does not focus the component like it would for other <code>&lt;input></code> elements, but the individual controls can still be focused by tabbing.</span>
-        <enhanced-slider name="component-name" id="component-id"></enhanced-slider>
+        <label for="component-id">enhanced-slider</label>
+        <enhanced-slider name="enhanced-slider" id="component-id"></enhanced-slider>
+        <fieldset class="browser-defaults">
+            <legend>Browser default range & number</legend>
+            <input name="default input range" type="range">
+            <input name="default input number" type="number" value="0">
+        </fieldset>
         <p>The current value is submitted with the form as long as the component has a <code>name</code> attribute.</p>
         <div class="buttons">
             <button type="submit">Submit</button>
             <button type="reset">Reset</button>
         </div>
     </form>
+
     <section id="more-examples">
         <h2>More examples</h2>
         <div>
@@ -120,9 +159,17 @@
             </label>
             <enhanced-slider id="attributes" step="2.5" min="-10" max="25" ticks="all"></enhanced-slider>
         </div>
+        <div>
+            <label for="attributes2">
+                Different step, min, and max<br>
+                Ticks for every step
+            </label>
+            <enhanced-slider id="attributes2" step="1" min="1" max="5" ticks="all" labels="all"></enhanced-slider>
+        </div>
         <div class="dark-mode">
             <label for="dark-mode">Dark & light mode</label>
             <enhanced-slider id="dark-mode"></enhanced-slider>
+            <enhanced-slider disabled></enhanced-slider>
         </div>
         <div>
             <label for="custom-buttons">Custom buttons</label>
@@ -132,12 +179,18 @@
             </enhanced-slider>
         </div>
         <div>
+            <label for="track-thumb">
+                Custom track and thumb
+                <enhanced-slider id="track-thumb"></enhanced-slider>
+            </labels>
+        </div>
+        <div>
             <label for="disabled">Disabled</label>
             <enhanced-slider id="disabled" disabled></enhanced-slider>
         </div>
         <div>
-            <label for="hide-labels">Without min and max labels</label>
-            <enhanced-slider id="hide-labels" ticks="none" hide-labels ></enhanced-slider>
+            <label for="hide-labels">Without ticks or labels</label>
+            <enhanced-slider id="hide-labels" ticks="none" labels="none" ></enhanced-slider>
         </div>
     </section>
 </body>
