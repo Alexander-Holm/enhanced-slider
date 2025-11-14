@@ -79,13 +79,23 @@
             }
         }
         #custom-buttons{
-            column-gap: 6px;
-            &::part(button){ color: white; }
-            &::part(button):enabled:is(:hover, :focus-visible){ box-shadow: 0 0 10px 2px #ff3efb}
-            &::part(button):enabled:active{ box-shadow: 0 0 10px 4px #ff3efb}
-            &::part(decrement){ background-image: linear-gradient(to left, #ff2424, #f93aff); }
-            &::part(increment){ background-image: linear-gradient(to right, #ff2424, #f93aff); }
-            &::part(slider){ --track-fill-background: purple; }
+            column-gap: 10px;
+            &::part(button){ 
+                width: auto;
+                height: auto;
+                padding-inline: 8px;
+                padding-block: 6px;
+                color: white;
+                background-color: dodgerblue;
+                outline: 2px solid transparent;
+                transition: 
+                    outline-color 100ms linear, 
+                    outline-offset 100ms linear;
+            }
+            &::part(button):enabled:hover{
+                outline-color: white;
+                outline-offset: -4px;
+            }
         }
         #gradient{
             --c1: #c60053;
@@ -115,7 +125,7 @@
                 --thumb-width: 2rem;
                 --thumb-height: 2rem;
                 --thumb-background: repeating-conic-gradient(dimgray 0deg, lightgray 60deg, dimgray 120deg);
-                --thumb-shadow: 0 1px 4px 1px black;
+                --thumb-shadow: 0 1px 2px 2px black;
                 --thumb-border: none;
 
                 --track-height: 10px;
@@ -123,7 +133,7 @@
                 --track-background: repeating-linear-gradient(-45deg, #d29c6c 0 4px, dimgray 4px 8px);
             }
             &::part(slider):hover{
-                --thumb-shadow: 0 1px 4px 2px black;
+                --thumb-shadow: 0 1px 4px 3px black;
             }
             &::part(slider):focus-within{outline: 4px solid coral;}
             &::part(track){ border: 2px solid black; }
@@ -201,8 +211,8 @@
         <div>
             <label for="custom-buttons">Custom buttons</label>
             <enhanced-slider id="custom-buttons">
-                <span slot="decrement">-</span>
-                <span slot="increment">+</span>
+                <span slot="decrement">Less</span>
+                <span slot="increment">More</span>
             </enhanced-slider>
         </div>
         <div>
