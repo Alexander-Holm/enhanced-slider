@@ -664,6 +664,7 @@ class EnhancedSlider extends HTMLElement{
             & > .track{
                     grid-area: 1/1;
                     width: 100%;
+                    box-sizing: border-box;
                     height: var(--track-height);
                     border-radius: var(--track-radius);
                     background: var(--track-background);
