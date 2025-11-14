@@ -49,7 +49,7 @@
                 width: fit-content;
                 margin-inline: auto;
                 margin-block: 60px;
-                border: 1px solid hsl(0 0% 50% / 15%);
+                border: 1px solid hsl(0 0% 50% / 20%);
                 & > legend{ margin-inline: auto; }
                 & > input{ 
                     display: block; 
@@ -69,6 +69,7 @@
             text-align: center;
             margin-inline: auto;
             max-width: 26rem;
+            & > h2{ margin-bottom: 20px; }
             & > div{ 
                 padding-block: 40px;
                 border-radius: 8px;
@@ -78,6 +79,30 @@
                 margin-inline: auto;
             }
         }
+
+        .css-open-button{
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: light-dark(dimgray, silver);
+            background: transparent;
+            border: 1px solid light-dark(silver, dimgray);
+            padding: 2px 8px;
+            &:hover{
+                color: light-dark(black, white);
+                background-color: light-dark(gainsboro, dimgray); 
+            }
+        }
+        .css-modal{
+            & > style{
+                display: block;
+                text-align: start;
+                white-space: pre;
+                font-family: monospace;
+                /* Magic number based on indentation */
+                margin-left: -20ch;
+            }
+        }
+
         #custom-buttons{
             column-gap: 10px;
             &::part(button){ 
@@ -88,57 +113,14 @@
                 color: white;
                 background-color: dodgerblue;
                 outline: 2px solid transparent;
-                transition: 
-                    outline-color 100ms linear, 
-                    outline-offset 100ms linear;
+                transition: outline 100ms linear;
             }
             &::part(button):enabled:hover{
                 outline-color: white;
                 outline-offset: -4px;
             }
         }
-        #gradient{
-            --c1: #c60053;
-            --c2: #ffa700;
-            &::part(slider){
-                --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
-                --thumb-border: 2px solid var(--c2);
-            }
-            &::part(slider):active{ --thumb-border: calc(1rem *0.35) solid var(--c2); }
-            &::part(button){ color: var(--c1)}
-            &::part(input-box){ border-color: var(--c2); }
-        }
-        #thin{
-            &::part(slider){
-                --track-height: 2px;
-                --track-fill-background: dodgerblue;
-                --thumb-width: 3px;
-                --thumb-height: 1rem;
-                --thumb-background: dodgerblue;
-                --thumb-border: none;
-            }
-            &::part(button){ color: dodgerblue }
-            &::part(input-box){ border-color: dodgerblue; }
-        }
-        #repeating-gradient{
-            &::part(slider){
-                --thumb-width: 2rem;
-                --thumb-height: 2rem;
-                --thumb-background: repeating-conic-gradient(dimgray 0deg, lightgray 60deg, dimgray 120deg);
-                --thumb-shadow: 0 1px 2px 2px black;
-                --thumb-border: none;
 
-                --track-height: 10px;
-                --track-fill-background: repeating-linear-gradient(-45deg, #36b284 0 4px, black 4px 8px);
-                --track-background: repeating-linear-gradient(-45deg, #d29c6c 0 4px, dimgray 4px 8px);
-            }
-            &::part(slider):hover{
-                --thumb-shadow: 0 1px 4px 3px black;
-            }
-            &::part(slider):focus-within{outline: 4px solid coral;}
-            &::part(track){ border: 2px solid black; }
-            &::part(input-box){ margin-top: 8px; }
-        }
         /* Invert preference */
         .dark-mode{
             @media (prefers-color-scheme: light){
@@ -162,6 +144,18 @@
                 outputText += `\n${name}\n${value}\n`
             }
             alert(outputText)
+        }
+        function copyCSS(e){
+            const style = e.target.previousElementSibling
+            navigator.clipboard.writeText(style.innerHTML)
+        }
+        function openModal(e){
+            const modal = e.target.nextElementSibling
+            modal.showModal()
+        }
+        function closeModal(e){
+            const modal = e.target.parentElement
+            modal.close()
         }
     </script>
 </head>
@@ -207,6 +201,81 @@
             <label for="dark-mode">Dark & light mode</label>
             <enhanced-slider id="dark-mode"></enhanced-slider>
             <enhanced-slider disabled></enhanced-slider>
+        </div>        
+        <div>
+            <label for="gradient">Gradient track fill</label>
+            <button class="css-open-button" onclick="openModal(event)">CSS</button>
+            <dialog class="css-modal">
+                <style>
+                    #gradient{
+                        --c1: #c60053;
+                        --c2: #ffa700;
+                        &::part(slider){
+                            --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
+                            --thumb-border: 2px solid var(--c2);
+                            --thumb-width: 1rem;
+                        }
+                        &::part(slider):active{
+                            --thumb-border: calc(var(--thumb-width) *0.35) solid var(--c2);
+                        }
+                        &::part(button){ color: var(--c1)}
+                        &::part(input-box){ border-color: var(--c2); }
+                    }
+                </style>
+                <button onclick="copyCSS(event)">Copy</button>
+                <button onclick="closeModal(event)">Close</button>
+            </dialog>
+            <enhanced-slider id="gradient" ticks="none" labels="none"></enhanced-slider>
+        </div>
+        <div>
+            <label for="thin">Thin track and thumb</label>
+            <button class="css-open-button" onclick="openModal(event)">CSS</button>
+            <dialog class="css-modal">
+                <style>
+                    #thin{
+                        &::part(slider){
+                            --track-height: 2px;
+                            --track-fill-background: dodgerblue;
+                            --thumb-width: 3px;
+                            --thumb-height: 1rem;
+                            --thumb-background: dodgerblue;
+                            --thumb-border: none;
+                        }
+                        &::part(button){ color: dodgerblue }
+                        &::part(input-box){ border-color: dodgerblue; }
+                    }
+                </style>
+                <button onclick="copyCSS(event)">Copy</button>
+                <button onclick="closeModal(event)">Close</button>
+            </dialog>
+            <enhanced-slider id="thin" ticks="none" labels="none"></enhanced-slider>
+        </div>        
+        <div>
+            <label for="repeating-gradient">Repeating gradients</label>
+            <button class="css-open-button" onclick="openModal(event)">CSS</button>
+            <dialog class="css-modal">
+                <style>
+                    #repeating-gradient{
+                        &::part(slider){
+                            --thumb-width: 2rem;
+                            --thumb-height: 2rem;
+                            --thumb-background: repeating-conic-gradient(dimgray 0deg, lightgray 60deg, dimgray 120deg);
+                            --thumb-shadow: 0 1px 2px 2px black;
+                            --thumb-border: none;
+
+                            --track-height: 10px;
+                            --track-fill-background: repeating-linear-gradient(-45deg, #36b284 0 4px, black 4px 8px);
+                            --track-background: repeating-linear-gradient(-45deg, #d29c6c 0 4px, dimgray 4px 8px);
+                        }
+                        &::part(slider):hover{ --thumb-shadow: 0 1px 4px 3px black; }
+                        &::part(track){ border: 2px solid black; }
+                        &::part(input-box){ margin-top: 8px; }
+                    }
+                </style>
+                <button onclick="copyCSS(event)">Copy</button>
+                <button onclick="closeModal(event)">Close</button>
+            </dialog>
+            <enhanced-slider id="repeating-gradient" ></enhanced-slider>
         </div>
         <div>
             <label for="custom-buttons">Custom buttons</label>
@@ -215,18 +284,6 @@
                 <span slot="increment">More</span>
             </enhanced-slider>
         </div>
-        <div>
-            <label for="gradient">Gradient track fill</label>
-            <enhanced-slider id="gradient" ticks="none" labels="none"></enhanced-slider>
-        </div>
-        <div>
-            <label for="thin">Thin track and thumb</label>
-            <enhanced-slider id="thin" ticks="none" labels="none"></enhanced-slider>
-        </div>        
-        <div>
-            <label for="repeating-gradient">Repeating gradients</label>
-            <enhanced-slider id="repeating-gradient" ></enhanced-slider>
-        </div>        
     </section>
 </body>
 </html>
