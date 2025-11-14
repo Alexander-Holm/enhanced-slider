@@ -80,29 +80,54 @@
         }
         #custom-buttons{
             column-gap: 6px;
-            accent-color: crimson;
-            color: light-dark(purple, pink);
             &::part(button){ color: white; }
             &::part(button):enabled:is(:hover, :focus-visible){ box-shadow: 0 0 10px 2px #ff3efb}
             &::part(button):enabled:active{ box-shadow: 0 0 10px 4px #ff3efb}
             &::part(decrement){ background-image: linear-gradient(to left, #ff2424, #f93aff); }
             &::part(increment){ background-image: linear-gradient(to right, #ff2424, #f93aff); }
-            &::part(slider){ --track-color-before: purple; }
+            &::part(slider){ --track-fill-background: purple; }
         }
-        #track-thumb:disabled{
-            &::part(slider){ outline: 2px solid coral; }
+        #gradient{
+            --c1: #c60053;
+            --c2: #ffa700;
+            &::part(slider){
+                --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
+                --thumb-border: 2px solid var(--c2);
+            }
+            &::part(slider):active{ --thumb-border: calc(1rem *0.35) solid var(--c2); }
+            &::part(button){ color: var(--c1)}
+            &::part(input-box){ border-color: var(--c2); }
         }
-        #track-thumb::part(slider){
-            --test: aqua;
+        #thin{
+            &::part(slider){
+                --track-height: 2px;
+                --track-fill-background: dodgerblue;
+                --thumb-width: 3px;
+                --thumb-height: 1rem;
+                --thumb-background: dodgerblue;
+                --thumb-border: none;
+            }
+            &::part(button){ color: dodgerblue }
+            &::part(input-box){ border-color: dodgerblue; }
         }
-        #track-thumb::part(slider):hover{
-            --track-height: 10px;
-            --track-color-before: lightblue;
-            --thumb-width: 2rem;
-            --thumb-height: 1rem;
-            --thumb-color: gray;
-            --thumb-border: 2px solid white;
-            --test: crimson;
+        #repeating-gradient{
+            &::part(slider){
+                --thumb-width: 2rem;
+                --thumb-height: 2rem;
+                --thumb-background: repeating-conic-gradient(dimgray 0deg, lightgray 60deg, dimgray 120deg);
+                --thumb-shadow: 0 1px 4px 1px black;
+                --thumb-border: none;
+
+                --track-height: 10px;
+                --track-fill-background: repeating-linear-gradient(-45deg, #36b284 0 4px, black 4px 8px);
+                --track-background: repeating-linear-gradient(-45deg, #d29c6c 0 4px, dimgray 4px 8px);
+            }
+            &::part(slider):hover{
+                --thumb-shadow: 0 1px 4px 2px black;
+            }
+            &::part(slider):focus-within{outline: 4px solid coral;}
+            &::part(track){ border: 2px solid black; }
+            &::part(input-box){ margin-top: 8px; }
         }
         /* Invert preference */
         .dark-mode{
@@ -153,18 +178,20 @@
     <section id="more-examples">
         <h2>More examples</h2>
         <div>
-            <label for="attributes">
-                Different step, min, and max<br>
-                Ticks for every step
-            </label>
-            <enhanced-slider id="attributes" step="2.5" min="-10" max="25" ticks="all"></enhanced-slider>
+            <label for="ticks">Ticks for every step</label>
+            <enhanced-slider id="ticks" step="2.5" min="-10" max="25" ticks="all"></enhanced-slider>
         </div>
         <div>
-            <label for="attributes2">
-                Different step, min, and max<br>
-                Ticks for every step
-            </label>
-            <enhanced-slider id="attributes2" step="1" min="1" max="5" ticks="all" labels="all"></enhanced-slider>
+            <label for="labels-ticks">Labels and ticks for every step</label>
+            <enhanced-slider id="labels-ticks" step="1" min="1" max="5" ticks="all" labels="all"></enhanced-slider>
+        </div>
+        <div>
+            <label for="hide-labels">Without ticks or labels</label>
+            <enhanced-slider id="hide-labels" ticks="none" labels="none" ></enhanced-slider>
+        </div>
+        <div>
+            <label for="disabled">Disabled</label>
+            <enhanced-slider id="disabled" disabled></enhanced-slider>
         </div>
         <div class="dark-mode">
             <label for="dark-mode">Dark & light mode</label>
@@ -179,19 +206,17 @@
             </enhanced-slider>
         </div>
         <div>
-            <label for="track-thumb">
-                Custom track and thumb
-                <enhanced-slider id="track-thumb"></enhanced-slider>
-            </labels>
+            <label for="gradient">Gradient track fill</label>
+            <enhanced-slider id="gradient" ticks="none" labels="none"></enhanced-slider>
         </div>
         <div>
-            <label for="disabled">Disabled</label>
-            <enhanced-slider id="disabled" disabled></enhanced-slider>
-        </div>
+            <label for="thin">Thin track and thumb</label>
+            <enhanced-slider id="thin" ticks="none" labels="none"></enhanced-slider>
+        </div>        
         <div>
-            <label for="hide-labels">Without ticks or labels</label>
-            <enhanced-slider id="hide-labels" ticks="none" labels="none" ></enhanced-slider>
-        </div>
+            <label for="repeating-gradient">Repeating gradients</label>
+            <enhanced-slider id="repeating-gradient" ></enhanced-slider>
+        </div>        
     </section>
 </body>
 </html>
