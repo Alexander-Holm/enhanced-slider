@@ -63,10 +63,7 @@ class EnhancedSlider extends HTMLElement{
         // This creates an object with properties that contain HTML elements.
         // This does not add them as children in the HTML!
         // That has to be done later with element.append()
-
-        // sliderContainer is a fieldset so that it can be disabled.
-        // This makes it easier to style with css.
-        sliderContainer: Object.assign(document.createElement("fieldset"), {
+        sliderContainer: Object.assign(document.createElement("div"), {
             hiddenInputRange: document.createElement("input"), 
             customSlider: Object.assign(document.createElement("div"), {
                 thumb: document.createElement("span"),
@@ -196,7 +193,7 @@ class EnhancedSlider extends HTMLElement{
         const { inputBox, sliderContainer } = this.children
         const { hiddenInputRange } = sliderContainer
         const { decrement, increment } = this.children.buttons
-        sliderContainer.disabled = hiddenInputRange.disabled = inputBox.disabled = decrement.disabled = increment.disabled = this.#disabled
+        hiddenInputRange.disabled = inputBox.disabled = decrement.disabled = increment.disabled = this.#disabled
         this.#handleButtonState()
     }
 
@@ -399,7 +396,7 @@ class EnhancedSlider extends HTMLElement{
         inputBox.type = "text"
         inputBox.autocomplete = "off"
         inputBox.role = "spinbutton"
-        inputBox.part = "input-box"
+        inputBox.className = inputBox.part = "input-box"
 
         hiddenInputRange.onkeyup = hiddenInputRange.onblur = () => this.intervalEmitter.stop(hiddenInputRange)
         inputBox.onkeyup = inputBox.onblur = () => this.intervalEmitter.stop(inputBox)
@@ -515,15 +512,20 @@ class EnhancedSlider extends HTMLElement{
             margin-block: 10px;
             color: light-dark(black, white);
             user-select: none;
-            &:host([hidden]) { display: none !important; }
-            &:host(:disabled) { filter: grayscale(1); }
-
-            pointer-events: none;
-            & > input[type = "text"], & > .slider, & > button { 
-                pointer-events: auto;
-            }
 
             --focus-outline: auto;
+        }`)
+        css.insertRule(`:host([hidden]){ display: none !important; }`)
+        css.insertRule(`:host(:enabled){
+            pointer-events: none;
+            & > .input-box, & > .slider, & > button { 
+                pointer-events: auto;
+            }
+        }`)
+        css.insertRule(`:host(:disabled){
+            filter: grayscale(1);
+            & > .input-box { pointer-events: none; opacity: 0.4 }
+            & > .slider { pointer-events: none; filter: contrast(0.8) opacity(0.5); }
         }`)
 
         // Needs the webkit specific properties! 
@@ -550,11 +552,11 @@ class EnhancedSlider extends HTMLElement{
             -webkit-touch-callout: none;
 
             &:enabled:is(:hover, :active) { background-color: revert; }
-            &:disabled { pointer-events: none; color: gray; opacity: 0.4; }            
+            &:disabled { pointer-events: none; color: gray; opacity: 0.4; }
         }`)
 
         // width is set by Javascript 
-        css.insertRule(`input[type = "text"] {
+        css.insertRule(`.input-box {
             appearance: textfield;
             z-index: 2;
             grid-row: 3 / 5;
@@ -570,23 +572,19 @@ class EnhancedSlider extends HTMLElement{
             margin: auto;
             margin-block: 2px;
             &:focus { outline: var(--focus-outline, auto); }
-            &:disabled { opacity: 0.4 }
-            &:host([labels = "all"]) > input[type = "text"]{
-                grid-row: 1;
-            }
         }`)
         css.insertRule(`input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }`)
-        css.insertRule(`:host([labels = "all"]) > input[type = "text"]{
+        css.insertRule(`:host([labels = "all"]) > .input-box{
             grid-row: 1;
         }`)
         
         css.insertRule(`input[type = "range"].hidden-overlay {
             z-index: 1;
-            grid-row: 2/4;
-            grid-column: 2;
+            grid-row: 1/3;
+            grid-column: 1;
             min-width: 0;
             margin: 0;
             opacity: 0;
@@ -596,23 +594,21 @@ class EnhancedSlider extends HTMLElement{
             }
         }`)
         
-        // display:grid; grid-template-rows:subgrid; 
-        // does not work on <fieldset> in Chrome!
-        // display:contents does work similiarly but with different
-        // values for rows and columns on children.
         css.insertRule(`.slider {
-            display: contents;
+            grid-row: 2 / 4;
+            grid-column: 2;
+            display: grid;
+            grid-template-rows: subgrid;
             margin: 0;
             padding: 0;
             border: 0;
 
-            &:disabled { filter: contrast(0.8) opacity(0.5); }
-            &:enabled:hover{
+            &:hover {
                 --track-background: light-dark(#d2d2d2, #3c3c3c);
                 --track-fill-background: light-dark(#409cff, #44a1ff);
                 --thumb-shadow: 0 1px 2px hsla(0 0% 0% / 50%);
             }
-            &:enabled:active{
+            &:active{
                 --thumb-border: 
                     calc(min(var(--thumb-width), var(--thumb-height)) *0.35) 
                     solid var(--track-fill-background);
@@ -639,7 +635,7 @@ class EnhancedSlider extends HTMLElement{
         css.insertRule(`.custom-slider-appearance{
             z-index: 3;
             pointer-events: none;
-            grid-area: 2/2;
+            grid-area: 1/1;
             display: grid;
             align-items: center;
             border-radius: var(--track-radius);
@@ -662,13 +658,13 @@ class EnhancedSlider extends HTMLElement{
                     left var(--track-transition);
             }
             & > .track{
-                    grid-area: 1/1;
-                    width: 100%;
-                    box-sizing: border-box;
-                    height: var(--track-height);
-                    border-radius: var(--track-radius);
-                    background: var(--track-background);
-                    overflow: hidden;
+                grid-area: 1/1;
+                width: 100%;
+                box-sizing: border-box;
+                height: var(--track-height);
+                border-radius: var(--track-radius);
+                background: var(--track-background);
+                overflow: hidden;
                 & > .track-fill{
                     display: block;
                     height: 100%;
@@ -681,8 +677,8 @@ class EnhancedSlider extends HTMLElement{
         }`)
 
         css.insertRule(`.ruler {
-            grid-row: 3;
-            grid-column: 2;
+            grid-row: 2;
+            grid-column: 1;
             padding-inline: calc(var(--thumb-width, 18px) / 2);
             margin-top: -2px;
 
