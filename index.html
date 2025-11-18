@@ -212,11 +212,8 @@
                         --c2: #ffa700;
                         &::part(slider){
                             --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
-                            --thumb-border: 2px solid var(--c2);
+                            --thumb-border-color: var(--c2);
                             --thumb-width: 1rem;
-                        }
-                        &::part(slider):active{
-                            --thumb-border: calc(var(--thumb-width) *0.35) solid var(--c2);
                         }
                         &::part(button){ color: var(--c1)}
                         &::part(input-box){ border-color: var(--c2); }
@@ -260,14 +257,14 @@
                             --thumb-width: 2rem;
                             --thumb-height: 2rem;
                             --thumb-background: repeating-conic-gradient(dimgray 0deg, lightgray 60deg, dimgray 120deg);
-                            --thumb-shadow: 0 1px 2px 2px black;
-                            --thumb-border: none;
+                            --thumb-shadow: 0 1px 2px 1px black;
+                            --thumb-border-style: none;
 
                             --track-height: 10px;
                             --track-fill-background: repeating-linear-gradient(-45deg, #36b284 0 4px, black 4px 8px);
                             --track-background: repeating-linear-gradient(-45deg, #d29c6c 0 4px, dimgray 4px 8px);
                         }
-                        &::part(slider):hover{ --thumb-shadow: 0 1px 4px 3px black; }
+                        &::part(slider):hover{ --thumb-shadow: 0 1px 2px 2px black; }
                         &::part(track){ border: 2px solid black; }
                         &::part(input-box){ margin-top: 8px; }
                     }

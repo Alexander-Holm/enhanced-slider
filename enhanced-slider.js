@@ -594,6 +594,28 @@ class EnhancedSlider extends HTMLElement{
             }
         }`)
         
+        // Variables on :host instead of slider class,
+        // so they don't get overriden if user changes them 
+        // on host instead of using ::part(slider).
+        css.insertRule(`:host{            
+            --track-height: 4px;
+            --track-radius: var(--track-height);
+            --track-background: light-dark(gainsboro, #353535);
+            --track-filter: none;
+
+            --track-fill-background: light-dark(dodgerblue, #3e94e8);
+            --track-fill-filter: none;
+
+            --thumb-width: 1rem;
+            --thumb-height: 1rem;
+            --thumb-radius: var(--thumb-height);
+            --thumb-background: white;
+            --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
+            --thumb-border-color: var(--track-fill-background);
+            --thumb-border-width: 2px;
+            --thumb-border-style: solid;
+            --thumb-filter: none;
+        }`)
         css.insertRule(`.slider {
             grid-row: 2 / 4;
             grid-column: 2;
@@ -602,32 +624,17 @@ class EnhancedSlider extends HTMLElement{
             margin: 0;
             padding: 0;
             border: 0;
-
             &:hover {
-                --track-background: light-dark(#d2d2d2, #3c3c3c);
-                --track-fill-background: light-dark(#409cff, #44a1ff);
-                --thumb-shadow: 0 1px 2px hsla(0 0% 0% / 50%);
+                --track-filter: brightness(0.95);
+                /*  */
+                --track-fill-filter: brightness(1.158) contrast(1.3);
+                --thumb-filter: brightness(1.1) contrast(1.3);
+                --thumb-shadow: 0 1px 2px hsl(0 0% 0% / 50%);
             }
             &:active{
-                --thumb-border: 
-                    calc(min(var(--thumb-width), var(--thumb-height)) *0.35) 
-                    solid var(--track-fill-background);
+                --thumb-border-width: calc(min(var(--thumb-width), var(--thumb-height)) *0.35);
             }
-
-            --thumb-width: 1rem;
-            --thumb-height: 1rem;
-            --thumb-radius: var(--thumb-height);
-            --thumb-background: white;
-            --thumb-border: 2px solid var(--track-fill-background);
-            --thumb-shadow: 0 1px 1px hsla(0, 0%, 0%, 30%);
-
-            --track-height: 4px;
-            --track-radius: var(--track-height);
-            --track-background: light-dark(gainsboro, #353535);
-            --track-fill-background: light-dark(dodgerblue, #3e94e8);
-
-            --hover-track: color-mix(in oklch, var(--track-background), gray 10%);
-            --hover-track-fill: color-mix(in oklch, var(--track-fill-background), white 10%);
+            
         }`)
         // Highest z-index for the focus outline to not fall behind input-box.
         // No pointer-events so than the inputs behind can be clicked!
@@ -649,9 +656,13 @@ class EnhancedSlider extends HTMLElement{
                 height: var(--thumb-height);
                 border-radius: var(--thumb-radius);
                 background: var(--thumb-background);
-                border: var(--thumb-border);
+                border-color: var(--thumb-border-color);
+                border-width: var(--thumb-border-width);
+                border-style: var(--thumb-border-style);
                 box-shadow: var(--thumb-shadow);
+                filter: var(--thumb-filter);
                 box-sizing: border-box;
+                background-clip: content-box;
                 will-change: border-width, left;
                 transition: 
                     border-width 50ms linear,
@@ -664,12 +675,14 @@ class EnhancedSlider extends HTMLElement{
                 height: var(--track-height);
                 border-radius: var(--track-radius);
                 background: var(--track-background);
+                filter: var(--track-filter);
                 overflow: hidden;
                 & > .track-fill{
                     display: block;
                     height: 100%;
                     width: 100%;
                     background: var(--track-fill-background);
+                    filter: var(--track-fill-filter);
                     will-change: transform;
                     transition: transform var(--track-transition);
                 }
