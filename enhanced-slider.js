@@ -513,7 +513,8 @@ class EnhancedSlider extends HTMLElement{
             color: light-dark(black, white);
             user-select: none;
 
-            --focus-outline: auto;
+            --default-color: light-dark(dodgerblue, #3e94e8);
+            --focus-outline: 2px solid var(--default-color);
         }`)
         css.insertRule(`:host([hidden]){ display: none !important; }`)
         css.insertRule(`:host(:enabled){
@@ -593,17 +594,22 @@ class EnhancedSlider extends HTMLElement{
                 outline-offset: 2px;
             }
         }`)
-        
-        // Variables on :host instead of slider class,
-        // so they don't get overriden if user changes them 
-        // on host instead of using ::part(slider).
-        css.insertRule(`:host{            
+
+        css.insertRule(`.slider {
+            grid-row: 2 / 4;
+            grid-column: 2;
+            display: grid;
+            grid-template-rows: subgrid;
+            margin: 0;
+            padding: 0;
+            border: 0;
+
             --track-height: 4px;
             --track-radius: var(--track-height);
             --track-background: light-dark(gainsboro, #353535);
             --track-filter: none;
 
-            --track-fill-background: light-dark(dodgerblue, #3e94e8);
+            --track-fill-background: var(--default-color);
             --track-fill-filter: none;
 
             --thumb-width: 1rem;
@@ -615,18 +621,13 @@ class EnhancedSlider extends HTMLElement{
             --thumb-border-width: 2px;
             --thumb-border-style: solid;
             --thumb-filter: none;
-        }`)
-        css.insertRule(`.slider {
-            grid-row: 2 / 4;
-            grid-column: 2;
-            display: grid;
-            grid-template-rows: subgrid;
-            margin: 0;
-            padding: 0;
-            border: 0;
+
             &:hover {
                 --track-filter: brightness(0.95);
-                /*  */
+                /* 
+                    track-fill is a child of track and gets both filters.
+                    Use some math to make fill and thumb the same brightness.
+                */
                 --track-fill-filter: brightness(1.158) contrast(1.3);
                 --thumb-filter: brightness(1.1) contrast(1.3);
                 --thumb-shadow: 0 1px 2px hsl(0 0% 0% / 50%);
