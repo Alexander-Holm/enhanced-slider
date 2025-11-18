@@ -505,7 +505,6 @@ class EnhancedSlider extends HTMLElement{
         css.insertRule(`:host {
             display: grid;
             grid-template-columns: auto 1fr auto;
-            column-gap: 3px;
             min-width: 10rem;
             max-width: 24rem;
             box-sizing: content-box;
@@ -604,7 +603,8 @@ class EnhancedSlider extends HTMLElement{
             grid-column: 2;
             display: grid;
             grid-template-rows: subgrid;
-            margin: 0;
+            margin-inline: 3px;
+            margin-block: 0;
             padding: 0;
             border: 0;
 
