@@ -210,6 +210,7 @@
                     #gradient{
                         --c1: #c60053;
                         --c2: #ffa700;
+                        --focus-outline: 2px solid var(--c1);
                         &::part(slider){
                             --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
                             --thumb-border-color: var(--c2);
@@ -230,16 +231,17 @@
             <dialog class="css-modal">
                 <style>
                     #thin{
+                        --c1: dodgerblue;
                         &::part(slider){
                             --track-height: 2px;
-                            --track-fill-background: dodgerblue;
+                            --track-fill-background: var(--c1);
                             --thumb-width: 3px;
                             --thumb-height: 1rem;
-                            --thumb-background: dodgerblue;
+                            --thumb-background: var(--c1);
                             --thumb-border: none;
                         }
-                        &::part(button){ color: dodgerblue }
-                        &::part(input-box){ border-color: dodgerblue; }
+                        &::part(button){ color: var(--c1) }
+                        &::part(input-box){ border-color: var(--c1); }
                     }
                 </style>
                 <button onclick="copyCSS(event)">Copy</button>
