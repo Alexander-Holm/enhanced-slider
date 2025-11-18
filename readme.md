@@ -127,25 +127,36 @@ enhanced-slider {
 /* Applies to both buttons */
 enhanced-slider::part(button){ color: white; }
 /* Individual buttons */
-enhanced-slider::part(increment){ background-color: red; }
 enhanced-slider::part(decrement){ background-color: blue; }
+enhanced-slider::part(increment){ background-color: red; }
 ```
 
-#### Available parts
+#### slider
 
-##### slider
++ The `<input type="range">` element
 
-The `<input type="range">` element
+#### input-box
 
-##### input-box
++ The `<input type="text">` element (not `type="number"`)
 
-The `<input type="text">` element
+#### button
 
-##### button
++ This selects both left and right `<button>` elements 
++ By default the buttons are square shaped with the same `width` and `height`. The size for both is set by the CSS variable `--size: 1.25em;`. 
+    + The easiest way to change size is with `font-size` and `padding`.
+    + If you want the size to fit the contents just set `width` and `height` to `auto`.
++ Select an individual `<button>` with:
+    1. *decrement*
+    2. *increment*
 
-This selects both left and right `<button>` elements 
+#### labels
 
-+ *decrement* selects the button on the left
-+ *increment* selects the button on the right
++ The container for the `min`and `max` labels
 
-By default the buttons are square shaped with the same `width` and `height`. The size for both is set by the CSS variable `--size: 1.25em;`. If you want the size to fit the contents just set `width` and `height` to `auto`.
+#### label
+
++ This selects both `min`and `max` labels
++ Select an individual label with:
+    1. *min*
+    2. *max*
+

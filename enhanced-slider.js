@@ -575,6 +575,7 @@ class EnhancedSlider extends HTMLElement{
             color: inherit;
             margin: auto;
             margin-block: 2px;
+            &::selection{ background-color: var(--default-color); color: white; }
             &:focus { outline: var(--focus-outline, auto); }
         }`)
         css.insertRule(`input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
