@@ -523,6 +523,9 @@ class EnhancedSlider extends HTMLElement{
                 pointer-events: auto;
             }
         }`)
+        // button disabled state is set in the button rule
+        // because buttons can be disabled without the host
+        // (min or max reached)
         css.insertRule(`:host(:disabled){
             filter: grayscale(1);
             & > .input-box { pointer-events: none; opacity: 0.4 }
@@ -552,8 +555,8 @@ class EnhancedSlider extends HTMLElement{
             -webkit-user-select: none;
             -webkit-touch-callout: none;
 
-            &:enabled:is(:hover, :active) { background-color: revert; }
-            &:disabled { pointer-events: none; color: gray; opacity: 0.4; }
+            &:enabled:hover { background-color: hsla(0, 0%, 50%, 0.1); }
+            &:disabled { pointer-events: none !important; opacity: 0.25; }
         }`)
 
         // width is set by Javascript 
