@@ -453,6 +453,9 @@ class EnhancedSlider extends HTMLElement{
             //Don't stop the interval when hovering a button if that button is not what started it.
             const button = event.currentTarget
             if(this.intervalEmitter.currentUser === button){
+                console.log(event.type)
+                event.preventDefault()
+                event.stopPropagation()
                 this.intervalEmitter.stop(button)
                 inputBox.focus()
             }
@@ -531,7 +534,7 @@ class EnhancedSlider extends HTMLElement{
             & > .slider { pointer-events: none; filter: contrast(0.8) opacity(0.5); }
         }`)
 
-        // Needs the webkit specific properties! 
+        // user-select needs webkit prefix! 
         css.insertRule(`button {
             grid-row: 2;
             --size: 1.25em;
@@ -548,11 +551,9 @@ class EnhancedSlider extends HTMLElement{
             display: flex;
             justify-content: center;
             align-items: center;
-
+            touch-action: manipulation;
             user-select: none;
-            touch-action: none;
             -webkit-user-select: none;
-            -webkit-touch-callout: none;
 
             &:enabled:hover { background-color: hsla(0, 0%, 50%, 0.1); }
             &:disabled { pointer-events: none !important; opacity: 0.25; }
@@ -710,6 +711,8 @@ class EnhancedSlider extends HTMLElement{
                 font-family: monospace;
                 font-size: 0.8rem;
                 color: gray;
+                user-select: none;
+                -webkit-user-select: none;
             }
             & > .ticks > span.width-zero-centering{
                 width: 0px;
