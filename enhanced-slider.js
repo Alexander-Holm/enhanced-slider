@@ -308,7 +308,7 @@ class EnhancedSlider extends HTMLElement{
         // These properties can not be set using getAttribute() ?? "defaultValue"
         // because the attribute could have a value that does not pass the setter.
         // That would leave the property as undefined.
-        Array("value", "min", "max", "step").forEach(attribute => {
+        Array("step", "min", "max", "value").forEach(attribute => {
             this[attribute] = this.getAttribute(attribute)
         })
         // This assigns default values if:
