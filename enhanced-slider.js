@@ -84,7 +84,7 @@ class EnhancedSlider extends HTMLElement{
     get value(){ return this.#value}
     set value(newValue){
         const { inputBox } = this.children
-        
+        newValue = this.#replaceComma(newValue)
         if(this.#isNotNumber(newValue)){
             inputBox.value = this.#value
             return
@@ -105,6 +105,7 @@ class EnhancedSlider extends HTMLElement{
     #min
     get min(){ return this.#min }
     set min(newValue){
+        newValue = this.#replaceComma(newValue)
         if(this.#isNotNumber(newValue) || newValue === this.#min) return
         const { inputBox } = this.children
         const { hiddenInputRange } = this.children.sliderContainer
@@ -126,6 +127,7 @@ class EnhancedSlider extends HTMLElement{
     #max
     get max(){ return this.#max }
     set max(newValue){
+        newValue = this.#replaceComma(newValue)
         // Don't return if newValue === #max
         // It should be possible to rerun the validation
         // by calling this setter with the same value.
@@ -163,6 +165,7 @@ class EnhancedSlider extends HTMLElement{
     #step
     get step(){ return this.#step }
     set step(newValue){
+        newValue = this.#replaceComma(newValue)
         if(this.#isNotNumber(newValue) || newValue === this.#step) return
         const { hiddenInputRange } = this.children.sliderContainer
         hiddenInputRange.step = newValue
@@ -345,6 +348,14 @@ class EnhancedSlider extends HTMLElement{
     #isNotNumber(unknown){
         return isNaN(unknown - parseFloat(unknown));
     }
+    #replaceComma(string){
+        if(typeof string === "string" || string instanceof String)
+            // The first comma is interpreted as the decimal character.
+            // Number() constructor will ignore any dots after the first 
+            // so no need to replace more than the first comma.
+            return string.replace(",", ".")
+        else return string
+    }
     #countDecimals(unknown){
         const decimals = unknown?.toString().split(".")[1]
         return decimals?.length || 0
@@ -395,6 +406,7 @@ class EnhancedSlider extends HTMLElement{
         hiddenInputRange.className = "hidden-overlay"
         inputBox.type = "text"
         inputBox.autocomplete = "off"
+        inputBox.inputMode = "decimal"
         inputBox.role = "spinbutton"
         inputBox.className = inputBox.part = "input-box"
 
@@ -453,9 +465,6 @@ class EnhancedSlider extends HTMLElement{
             //Don't stop the interval when hovering a button if that button is not what started it.
             const button = event.currentTarget
             if(this.intervalEmitter.currentUser === button){
-                console.log(event.type)
-                event.preventDefault()
-                event.stopPropagation()
                 this.intervalEmitter.stop(button)
                 inputBox.focus()
             }
@@ -561,11 +570,10 @@ class EnhancedSlider extends HTMLElement{
 
         // width is set by Javascript 
         css.insertRule(`.input-box {
-            appearance: textfield;
             z-index: 2;
             grid-row: 3 / 5;
             grid-column: 2;        
-            min-width: 3ch;
+            min-width: 4ch;
             text-align: center;
             font-size: 0.9rem;
             padding: 2px;
