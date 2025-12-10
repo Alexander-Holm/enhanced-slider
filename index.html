@@ -32,7 +32,6 @@
             font-weight: 600;
             text-align: center;
         }
-        code{ text-wrap: nowrap;}
 
         form{
             border: 1px solid hsl(0 0% 50% / 30%);
@@ -80,7 +79,7 @@
             }
         }
 
-        .css-open-button{
+        .open-modal-button{
             font-size: 0.75rem;
             font-family: monospace;
             color: light-dark(dimgray, silver);
@@ -92,35 +91,27 @@
                 background-color: light-dark(gainsboro, dimgray); 
             }
         }
-        .css-modal{
-            & > style{
+        #example-code-modal{
+            border: 2px solid gray;
+            min-width: 25%;
+            padding: 40px;
+            @media(width < 900px){
+                padding-inline: 6px;
+            }
+            & > code{
                 display: block;
                 text-align: start;
                 white-space: pre;
-                font-family: monospace;
-                /* Magic number based on indentation */
-                margin-left: -20ch;
+                tab-size: 4;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                margin-inline: auto;
+                width: fit-content;
+                max-width: 100%;
+                overflow: auto;
             }
         }
-
-        #custom-buttons{
-            column-gap: 10px;
-            &::part(button){ 
-                width: auto;
-                height: auto;
-                padding-inline: 8px;
-                padding-block: 6px;
-                color: white;
-                background-color: dodgerblue;
-                outline: 2px solid transparent;
-                transition: outline 100ms linear;
-            }
-            &::part(button):enabled:hover{
-                outline-color: white;
-                outline-offset: -4px;
-            }
-        }
-
+        
         /* Invert preference */
         .dark-mode{
             @media (prefers-color-scheme: light){
@@ -136,26 +127,50 @@
         }
     </style>
     <script>
-        function onSubmit(e){
-            e.preventDefault()
-            const formData = new FormData(e.target)
+        function onSubmit(event){
+            event.preventDefault()
+            const formData = new FormData(event.target)
             let outputText = ""
             for (const [name, value] of formData.entries()){
                 outputText += `\n${name}\n${value}\n`
             }
             alert(outputText)
         }
-        function copyCSS(e){
-            const style = e.target.previousElementSibling
-            navigator.clipboard.writeText(style.innerHTML)
+        function copy(event){
+            const code = event.target.previousElementSibling
+            navigator.clipboard.writeText(code.textContent)
         }
-        function openModal(e){
-            const modal = e.target.nextElementSibling
+        function closeModal(event){
+            const modal = event.target.parentElement
+            modal.close()
+        }
+        function openModalCss(event){
+            const modal = document.getElementById("example-code-modal")
+            const style = event.target.nextElementSibling
+            const codeElement = modal.firstElementChild
+            codeElement.className = "css"
+            codeElement.textContent = style.textContent.replaceAll(/ {16}/g, "").trim()
             modal.showModal()
         }
-        function closeModal(e){
-            const modal = e.target.parentElement
-            modal.close()
+        function openModalHtml(event, newlineAttributes = false){
+            const component = event.target.parentElement.querySelector("enhanced-slider")
+            let html = outerHTML.get(component.id)
+            // Clean up outerHtml string.
+            // Only works for the HTML as it is on this page.
+            if(newlineAttributes)
+                html = html.replaceAll(" ", "\n\t").replace("</", "\n</")
+            else html = html.replaceAll(/(?<=\n) {12}/g, "")
+            const modal = document.getElementById("example-code-modal")
+            const codeElement = modal.firstElementChild
+            codeElement.className = "html"
+            codeElement.textContent = html
+            modal.showModal()
+        }
+        const outerHTML = new Map()
+        function saveComponentOuterHtml(id){
+            const callingScriptElement = document.currentScript
+            const component = callingScriptElement.previousElementSibling
+            outerHTML.set(component.id, component.outerHTML)
         }
     </script>
 </head>
@@ -181,21 +196,37 @@
 
     <section id="more-examples">
         <h2>More examples</h2>
+
+        <dialog id="example-code-modal">
+            <code></code>
+            <button onclick="copy(event)">Copy</button>
+            <button onclick="closeModal(event)">Close</button>
+        </dialog>
+
         <div>
             <label for="ticks">Ticks for every step</label>
-            <enhanced-slider id="ticks" step="2.5" min="-10" max="25" ticks="all"></enhanced-slider>
+            <button class="open-modal-button" onclick="openModalHtml(event, true)">HTML</button>
+            <enhanced-slider id="ticks" ticks="all" min="-10" max="25" step="2.5"></enhanced-slider>
+             <!-- Save outerHtml before the component adds more attributes that should not be displayed in the modal -->
+            <script>saveComponentOuterHtml()</script>
         </div>
         <div>
-            <label for="labels-ticks">Labels and ticks for every step</label>
-            <enhanced-slider id="labels-ticks" step="1" min="1" max="5" ticks="all" labels="all"></enhanced-slider>
+            <label for="labels-and-ticks">Labels and ticks for every step</label>
+            <button class="open-modal-button" onclick="openModalHtml(event, true)">HTML</button>
+            <enhanced-slider id="labels-and-ticks" ticks="all" labels="all" min="1" max="5"></enhanced-slider>
+            <script>saveComponentOuterHtml()</script>
         </div>
         <div>
-            <label for="hide-labels">Without ticks or labels</label>
-            <enhanced-slider id="hide-labels" ticks="none" labels="none" ></enhanced-slider>
+            <label for="simple">Without ticks or labels</label>
+            <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
+            <enhanced-slider id="simple" ticks="none" labels="none"></enhanced-slider>
+            <script>saveComponentOuterHtml()</script>
         </div>
         <div>
             <label for="disabled">Disabled</label>
+            <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
             <enhanced-slider id="disabled" disabled></enhanced-slider>
+            <script>saveComponentOuterHtml()</script>
         </div>
         <div class="dark-mode">
             <label for="dark-mode">Dark & light mode</label>
@@ -204,84 +235,165 @@
         </div>        
         <div>
             <label for="gradient">Gradient track fill</label>
-            <button class="css-open-button" onclick="openModal(event)">CSS</button>
-            <dialog class="css-modal">
-                <style>
-                    #gradient{
-                        --c1: #c60053;
-                        --c2: #ffa700;
-                        --focus-outline: 2px solid var(--c1);
-                        &::part(slider){
-                            --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
-                            --thumb-border-color: var(--c2);
-                            --thumb-width: 1rem;
-                        }
-                        &::part(button){ color: var(--c1)}
-                        &::part(input-box){ border-color: var(--c2); }
+            <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
+            <style>
+                #gradient{
+                    --c1: #c60053;
+                    --c2: #ffa700;
+                    --focus-outline: 2px solid var(--c1);
+                    &::part(slider){
+                        --track-fill-background: linear-gradient(to right, var(--c1), var(--c2));
+                        --thumb-border-color: var(--c2);
+                        --thumb-width: 1rem;
                     }
-                </style>
-                <button onclick="copyCSS(event)">Copy</button>
-                <button onclick="closeModal(event)">Close</button>
-            </dialog>
+                    &::part(button){ color: var(--c1)}
+                    &::part(input-box){ border-color: var(--c2); }
+                }
+            </style>
             <enhanced-slider id="gradient" ticks="none" labels="none"></enhanced-slider>
         </div>
         <div>
             <label for="thin">Thin track and thumb</label>
-            <button class="css-open-button" onclick="openModal(event)">CSS</button>
-            <dialog class="css-modal">
-                <style>
-                    #thin{
-                        --c1: dodgerblue;
-                        &::part(slider){
-                            --track-height: 2px;
-                            --track-fill-background: var(--c1);
-                            --thumb-width: 3px;
-                            --thumb-height: 1rem;
-                            --thumb-background: var(--c1);
-                            --thumb-border: none;
-                        }
-                        &::part(button){ color: var(--c1) }
-                        &::part(input-box){ border-color: var(--c1); }
+            <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
+            <style>
+                #thin{
+                    --c1: dodgerblue;
+                    &::part(slider){
+                        --track-height: 2px;
+                        --track-fill-background: var(--c1);
+                        --thumb-width: 3px;
+                        --thumb-height: 1rem;
+                        --thumb-background: var(--c1);
+                        --thumb-border: none;
                     }
-                </style>
-                <button onclick="copyCSS(event)">Copy</button>
-                <button onclick="closeModal(event)">Close</button>
-            </dialog>
+                    &::part(button){ color: var(--c1) }
+                    &::part(input-box){ border-color: var(--c1); }
+                }
+            </style>
             <enhanced-slider id="thin" ticks="none" labels="none"></enhanced-slider>
         </div>        
         <div>
             <label for="repeating-gradient">Repeating gradients</label>
-            <button class="css-open-button" onclick="openModal(event)">CSS</button>
-            <dialog class="css-modal">
-                <style>
-                    #repeating-gradient{
-                        &::part(slider){
-                            --thumb-width: 2rem;
-                            --thumb-height: 2rem;
-                            --thumb-background: repeating-conic-gradient(dimgray 0deg, lightgray 60deg, dimgray 120deg);
-                            --thumb-shadow: 0 1px 2px 1px black;
-                            --thumb-border-style: none;
+            <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
+            <style>
+                #repeating-gradient{
+                    &::part(slider){
+                        --thumb-width: 2rem;
+                        --thumb-height: 2rem;
+                        --thumb-background: repeating-conic-gradient(
+                            dimgray 0deg,
+                            lightgray 60deg,
+                            dimgray 120deg
+                        );
+                        --thumb-shadow: 0 1px 2px 1px black;
+                        --thumb-border-style: none;
 
-                            --track-height: 10px;
-                            --track-fill-background: repeating-linear-gradient(-45deg, #36b284 0 4px, black 4px 8px);
-                            --track-background: repeating-linear-gradient(-45deg, #d29c6c 0 4px, dimgray 4px 8px);
-                        }
-                        &::part(slider):hover{ --thumb-shadow: 0 1px 2px 2px black; }
-                        &::part(track){ border: 2px solid black; }
-                        &::part(input-box){ margin-top: 8px; }
+                        --track-height: 10px;
+                        --track-fill-background: repeating-linear-gradient(
+                            -45deg, 
+                            #36b284 0 4px,
+                            black 4px 8px
+                        );
+                        --track-background: repeating-linear-gradient(
+                            -45deg,
+                            #d29c6c 0 4px,
+                            dimgray 4px 8px
+                        );
                     }
-                </style>
-                <button onclick="copyCSS(event)">Copy</button>
-                <button onclick="closeModal(event)">Close</button>
-            </dialog>
+                    &::part(slider):hover{ --thumb-shadow: 0 1px 2px 2px black; }
+                    &::part(track){ border: 2px solid black; }
+                    &::part(input-box){ margin-top: 8px; }
+                }
+            </style>
             <enhanced-slider id="repeating-gradient" ></enhanced-slider>
         </div>
         <div>
-            <label for="custom-buttons">Custom buttons</label>
-            <enhanced-slider id="custom-buttons">
+            <label for="custom-button-text">Custom button text</label>
+            <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
+            <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
+            <style>
+                #custom-button-text{
+                    column-gap: 10px;
+                    &::part(button){ 
+                        width: auto;
+                        height: auto;
+                        padding-inline: 8px;
+                        padding-block: 6px;
+                        color: white;
+                        background-color: dodgerblue;
+                        outline: 2px solid transparent;
+                        transition: 100ms linear;
+                        transition-property: 
+                            outline-color, 
+                            outline-offset;
+                    }
+                    &::part(button):enabled:hover{
+                        outline-color: white;
+                        outline-offset: -4px;
+                    }
+                }
+            </style>
+            <enhanced-slider id="custom-button-text">
                 <span slot="decrement">Less</span>
                 <span slot="increment">More</span>
             </enhanced-slider>
+            <script>saveComponentOuterHtml()</script>
+        </div>
+        <div>
+            <label for="custom-button-icons">Custom button icons</label>
+            <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
+            <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
+            <style>
+                #custom-button-icons{
+                    &::part(button){ 
+                        font-size: 2rem; 
+                        transition: 
+                            100ms scale ease-out, 
+                            300ms filter linear;
+                    }
+                    &::part(button):enabled:hover{
+                        background-color: transparent;
+                        scale: 1.1;
+                        filter: 
+                            contrast(1.2)
+                            saturate(1.2)
+                            brightness(1.1);
+                    }
+                }
+            </style>
+            <enhanced-slider id="custom-button-icons">
+                <!-- https://www.svgrepo.com/svg/209057/happy-emoji -->
+                <svg slot="decrement" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512.001 512.001" xml:space="preserve">
+                    <circle style="fill:#F7B239;" cx="256.004" cy="256.004" r="246.855"/>
+                    <g>
+                        <path style="fill:#E09B2D;" d="M126.306,385.694c-88.801-88.802-95.798-228.426-20.998-325.241 c-8.286,6.401-16.258,13.399-23.858,20.999c-96.401,96.401-96.401,252.698,0,349.099s252.698,96.401,349.099,0 c7.599-7.599,14.597-15.573,20.999-23.858C354.733,481.492,215.108,474.495,126.306,385.694z"/>
+                        <path style="fill:#E09B2D;" d="M214.615,366.317c-3.999,0-7.672-2.642-8.806-6.682c-1.364-4.865,1.475-9.916,6.34-11.281 c28.686-8.042,59.012-8.043,87.7,0c4.865,1.364,7.704,6.414,6.34,11.281c-1.365,4.864-6.414,7.705-11.28,6.34 c-25.458-7.138-52.366-7.137-77.821,0C216.264,366.207,215.433,366.317,214.615,366.317z"/>
+                    </g>
+                    <path d="M256.001,0C114.841,0,0,114.841,0,256.001s114.841,256.001,256.001,256.001S512.001,397.16,512.001,256.001 S397.16,0,256.001,0z M256.001,493.701c-131.069,0-237.702-106.631-237.702-237.7S124.932,18.299,256.001,18.299 s237.702,106.632,237.702,237.702S387.068,493.701,256.001,493.701z"/>
+                    <path d="M261,300.195c-51.768,0-100.436,20.159-137.042,56.765c-3.573,3.573-3.573,9.367,0,12.939c3.573,3.572,9.365,3.574,12.94,0 c33.148-33.148,77.222-51.405,124.102-51.405s90.954,18.256,124.102,51.405c1.787,1.786,4.128,2.68,6.471,2.68 c2.341,0,4.683-0.893,6.471-2.68c3.573-3.573,3.573-9.367,0-12.939C361.435,320.355,312.767,300.195,261,300.195z"/>
+                    <path d="M112.871,250.584c0,18.666,15.186,33.852,33.852,33.852s33.852-15.186,33.852-33.852c0-3.914-0.676-7.672-1.903-11.172 c3.656,0.376,7.477,0.589,11.481,0.589c10.598,0,22.412-1.442,35.442-4.985c4.875-1.326,7.753-6.353,6.428-11.231 c-1.327-4.877-6.362-7.753-11.231-6.428c-64.861,17.643-92.98-23.546-94.224-25.432c-2.744-4.223-8.388-5.438-12.626-2.709 c-4.249,2.735-5.475,8.397-2.74,12.646c0.305,0.476,6.439,9.849,19.049,19.163C119.893,226.822,112.871,237.897,112.871,250.584z"/>
+                    <path d="M398.059,189.217c-4.248-2.735-9.912-1.509-12.645,2.74c-0.279,0.434-28.711,43.216-94.205,25.402 c-4.871-1.322-9.903,1.551-11.231,6.428c-1.326,4.876,1.552,9.903,6.428,11.231c13.033,3.544,24.843,4.985,35.442,4.985 c4.003,0,7.823-0.214,11.48-0.589c-1.227,3.5-1.903,7.257-1.903,11.172c0,18.666,15.186,33.852,33.852,33.852 s33.852-15.186,33.852-33.852c0-12.689-7.021-23.762-17.378-29.558c12.611-9.314,18.744-18.688,19.049-19.163 C403.534,197.614,402.308,191.953,398.059,189.217z"/>
+                    <g>
+                        <circle style="fill:#FFFFFF;" cx="153.566" cy="249.27" r="9.15"/>
+                        <circle style="fill:#FFFFFF;" cx="371.935" cy="249.27" r="9.15"/>
+                    </g>
+                </svg>
+                <!-- https://www.svgrepo.com/svg/209073/sad -->
+                <svg slot="increment" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"  viewBox="0 0 512 512" xml:space="preserve">
+                    <circle style="fill:#F7B239;" cx="256.004" cy="256.004" r="246.855"/>
+                    <path style="fill:#E09B2D;" d="M126.308,385.694c-88.802-88.802-95.799-228.426-20.999-325.242 C97.023,66.853,89.051,73.85,81.45,81.45c-96.401,96.401-96.401,252.698,0,349.099s252.698,96.401,349.099,0 c7.599-7.599,14.597-15.573,20.999-23.858C354.733,481.492,215.108,474.494,126.308,385.694z"/>
+                    <path d="M256.001,512C114.841,512,0,397.159,0,256.001C0,114.841,114.841,0,256.001,0C397.159,0,512,114.841,512,256.001 C512,397.159,397.159,512,256.001,512z M256.001,18.299c-131.069,0-237.702,106.632-237.702,237.702s106.632,237.7,237.702,237.7 c131.068,0,237.7-106.632,237.7-237.7C493.701,124.932,387.068,18.299,256.001,18.299z"/>
+                    <path d="M255.999,314.45c-41.508,0-83.017-15.801-114.617-47.401c-3.573-3.573-3.573-9.365,0-12.939 c3.573-3.573,9.367-3.573,12.939,0c56.066,56.066,147.291,56.065,203.357,0c3.573-3.573,9.367-3.573,12.939,0 c3.573,3.573,3.573,9.365,0,12.939C339.017,298.65,297.509,314.45,255.999,314.45z"/>
+                    <path style="fill:#E09B2D;" d="M256.004,354.126c-14.753,0-29.507-2.01-43.849-6.031c-4.866-1.364-7.704-6.414-6.34-11.28 c1.364-4.865,6.419-7.704,11.28-6.34c25.455,7.137,52.366,7.137,77.821,0c4.866-1.366,9.916,1.475,11.28,6.34 c1.364,4.865-1.474,9.916-6.34,11.28C285.511,352.116,270.757,354.126,256.004,354.126z"/>
+                    <path d="M193.133,202.651c-5.053,0-9.15-4.097-9.15-9.15c0-24.556-19.978-44.535-44.535-44.535s-44.535,19.978-44.535,44.535 c0,5.053-4.097,9.15-9.15,9.15s-9.15-4.097-9.15-9.15c0-34.646,28.187-62.834,62.834-62.834s62.834,28.187,62.834,62.834 C202.283,198.555,198.186,202.651,193.133,202.651z"/>
+                    <path d="M426.236,202.651c-5.053,0-9.15-4.097-9.15-9.15c0-24.556-19.978-44.535-44.535-44.535 c-24.557,0-44.535,19.978-44.535,44.535c0,5.053-4.097,9.15-9.15,9.15s-9.15-4.097-9.15-9.15c0-34.646,28.187-62.834,62.834-62.834 s62.834,28.187,62.834,62.834C435.385,198.555,431.289,202.651,426.236,202.651z"/>
+                    <g>
+                        <circle style="fill:#F95428;" cx="100.572" cy="243.768" r="24.119"/>
+                        <circle style="fill:#F95428;" cx="411.425" cy="243.768" r="24.119"/>
+                    </g>
+                </svg>
+            </enhanced-slider>
+            <script>saveComponentOuterHtml()</script>
         </div>
     </section>
 </body>
