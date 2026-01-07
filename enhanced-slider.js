@@ -204,29 +204,43 @@ class EnhancedSlider extends HTMLElement{
     get ticks() { return this.#ticks }
     /** @param {"min-max" | "all" | "none" | null} value */
     set ticks(value){
-        if(value === undefined) return
-        // value will be null if attribute is removed with element.removeAttribute()
-        if(value === "none" || value === null){
-            this.#ticks = "none"
-            this.setAttribute("ticks", "none")
-            return
-        }
-        if(value === "min-max" || value === "all"){
-            const { min, max, step } = this.#getPropertiesAsNumbers()
-            const newTickArray = []
-            for(let tick = min; tick <= max; tick += step){
-                const wrapper = document.createElement("span")
-                wrapper.className = "width-zero-centering"
-                const tickElement = document.createElement("span")
-                tickElement.className = "tick"
-                tickElement.part = "tick"
-                wrapper.appendChild(tickElement)
-                newTickArray.push(wrapper)
+        // No early return if value === #ticks
+        // Need to update ticks if min, max, step changes,
+        // even if #ticks stay the same! 
+        const { ticks } = this.children.sliderContainer.ruler
+        switch(value){
+            case null:
+            case "none": {
+                ticks.replaceChildren()
+                value = "none"
+                this.#ticks = "none"
+                this.setAttribute("ticks", "none")
+                break
             }
-            this.children.sliderContainer.ruler.ticks.replaceChildren(...newTickArray)
-            this.#ticks = value
-            this.setAttribute("ticks", value)
-            return
+            case "min-max": 
+            case "all": {
+                const elements = []
+                let numberOfTicks
+                if(value === "min-max") 
+                    numberOfTicks = 2
+                else if (value === "all"){
+                    const { min, max, step } = this.#getPropertiesAsNumbers()
+                    numberOfTicks = (max + step - min) / step
+                }
+                for(let i = 0; i < numberOfTicks; i++){
+                    const wrapper = document.createElement("span")
+                    wrapper.className = "width-zero-centering"
+                    const tick = document.createElement("span")
+                    tick.part = tick.className = "tick"
+                    wrapper.appendChild(tick)
+                    elements.push(wrapper)
+                }
+                ticks.replaceChildren(...elements)
+                this.#ticks = value
+                this.setAttribute("ticks", value)
+                break
+            }
+            default: return
         }
     }
 
@@ -234,26 +248,51 @@ class EnhancedSlider extends HTMLElement{
     get labels() { return this.#labels }
     /** @param {"min-max" | "all" | "none" | null} value */
     set labels(value){
-        if(value === undefined) return
-        // value will be null if attribute is removed with element.removeAttribute()
-        if(value === "none" || value === null){
-            this.#labels = "none"
-            this.setAttribute("labels", "none")
-            return
-        }
-        if(value === "min-max" || value === "all"){
-            const { min, max, step } = this.#getPropertiesAsNumbers()
-            const newLabelArray = []
-            for(let label = min; label <= max; label += step){
-                const element = document.createElement("span")
-                element.part = "label"
-                element.innerHTML = label
-                newLabelArray.push(element)
+        // No early return if value === #labels
+        // Need to update labels if min, max, step changes,
+        // even if #labels stay the same! 
+        const { labels } = this.children.sliderContainer.ruler
+        switch(value){            
+            // value will be null if attribute is removed with element.removeAttribute()
+            case null:
+            case "none": {                
+                // https://developer.mozilla.org/en-US/docs/Web/API/Element/replaceChildren
+                // "If no replacement objects are specified, then the Element is emptied of all child nodes."
+                labels.replaceChildren()
+                value = "none"
+                this.#labels = value
+                this.setAttribute("labels", value)
+                break
             }
-            this.children.sliderContainer.ruler.labels.replaceChildren(...newLabelArray)
-            this.#labels = value
-            this.setAttribute("labels", value)
-            return
+            case "min-max": {
+                const { min, max } = this.#getPropertiesAsNumbers()
+                const minLabel = document.createElement("span")
+                const maxLabel = document.createElement("span")
+                minLabel.part = maxLabel.part = "label"
+                minLabel.className = maxLabel.className = "label width-zero-centering"
+                minLabel.innerHTML = min
+                maxLabel.innerHTML = max
+                labels.replaceChildren(minLabel, maxLabel)
+                this.#labels = value
+                this.setAttribute("labels", value)
+                break
+            }
+            case "all": {
+                const { min, max, step } = this.#getPropertiesAsNumbers()
+                const newLabelArray = []
+                for(let number = min; number <= max; number += step){
+                    const element = document.createElement("span")
+                    element.part = "label"
+                    element.className = "label width-zero-centering"
+                    element.innerHTML = number
+                    newLabelArray.push(element)
+                }
+                labels.replaceChildren(...newLabelArray)
+                this.#labels = value
+                this.setAttribute("labels", value)
+                break
+            }
+            default: return
         }
     }
 
@@ -707,43 +746,33 @@ class EnhancedSlider extends HTMLElement{
             grid-row: 2;
             grid-column: 1;
             padding-inline: calc(var(--thumb-width, 18px) / 2);
-            margin-top: -2px;
+            margin-block-start: -6px;
 
+            & .width-zero-centering{
+                inline-size: 0px;
+                display: flex;
+                justify-content: center;
+                overflow: visible;
+            }
             & > .labels, & > .ticks{
                 display: flex;
-                justify-content: space-between;            
-                & > span { display: none; }
+                justify-content: space-between;
             }
-            & > .labels > span{
-                width: 0px;
+            & .label{
                 font-family: monospace;
                 font-size: 0.8rem;
                 color: gray;
                 user-select: none;
                 -webkit-user-select: none;
             }
-            & > .ticks > span.width-zero-centering{
-                width: 0px;
-                & > .tick{
-                    width: 1px;
-                    height: 6px;
-                    flex-shrink: 0;
-                    margin-top: -4px;
-                    background-color: gray;
-                    border-radius: 1px;
-                }
+            & .tick{
+                inline-size: 1px;
+                block-size: 6px;
+                flex-shrink: 0;
+                background-color: gray;
+                border-radius: 1px;
             }
         }`)
-
-        css.insertRule(`
-            :host([labels = "all"]) .labels > span,
-            :host([ticks = "all"]) .ticks > span.width-zero-centering,
-            :host([labels = "min-max"]) .labels > :is(:first-child, :last-child),
-            :host([ticks = "min-max"]) .ticks > :is(:first-child, :last-child){
-                display: flex;
-                justify-content: center;
-            }
-        `)
 
         this.shadowRoot.adoptedStyleSheets = [css]
     }
