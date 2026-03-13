@@ -71,12 +71,10 @@
             & > h2{ margin-bottom: 20px; }
             & > div{ 
                 padding-block: 40px;
+                padding-inline: 60px;
                 border-radius: 8px;
             }
-            & enhanced-slider{
-                max-width: 18rem;
-                margin-inline: auto;
-            }
+            & enhanced-slider:not([vertical]){ margin-inline: auto; }
         }
 
         .open-modal-button{
@@ -110,6 +108,12 @@
                 max-width: 100%;
                 overflow: auto;
             }
+        }
+        
+        .vertical{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         /* Invert preference */
@@ -220,6 +224,12 @@
             <label for="simple">Without ticks or labels</label>
             <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
             <enhanced-slider id="simple" ticks="none" labels="none"></enhanced-slider>
+            <script>saveComponentOuterHtml()</script>
+        </div>
+        <div class="vertical">
+            <label for="vertical">Vertical</label>
+            <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
+            <enhanced-slider id="vertical" vertical></enhanced-slider>
             <script>saveComponentOuterHtml()</script>
         </div>
         <div>

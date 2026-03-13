@@ -412,7 +412,7 @@ class EnhancedSlider extends HTMLElement{
             min.toFixed(this.decimalPrecision).length,
             max.toFixed(this.decimalPrecision).length
         )
-        this.children.inputBox.style.width = `${maxCharacters + 1}ch`
+        this.children.inputBox.style.inlineSize = `${maxCharacters + 1}ch`
     }
     #handleButtonState(){
         if(this.disabled) return
@@ -432,11 +432,11 @@ class EnhancedSlider extends HTMLElement{
         const { thumb, track } = this.children.sliderContainer.customSlider
         const thumbOffset = thumb.offsetWidth * percentDecimal
 
-        thumb.style.left = `calc(${percent.toFixed(3)}% - ${thumbOffset.toFixed(3)}px)`
-        track.fill.style.transform = `translateX(calc(
-            ${(percent-100).toFixed(3)}% +
+        thumb.style.insetInlineStart = `calc(${percent.toFixed(3)}% - ${thumbOffset.toFixed(3)}px)`
+        track.fill.style.insetInlineEnd = `calc(
+            ${(100-percent).toFixed(3)}% -
             ${((thumb.offsetWidth / 2) - thumbOffset).toFixed(3)}px
-        ))` 
+        )` 
     }
    
     #configureHTMLElements(inputBox, buttons, sliderContainer){
@@ -556,10 +556,11 @@ class EnhancedSlider extends HTMLElement{
         css.insertRule(`:host {
             display: grid;
             grid-template-columns: auto 1fr auto;
-            min-width: 10rem;
-            max-width: 24rem;
+            min-inline-size: 10rem;
+            max-inline-size: 24rem;
+            block-size: fit-content;
             box-sizing: content-box;
-            margin-block: 10px;
+            margin: 10px;
             color: light-dark(black, white);
             user-select: none;
 
@@ -580,6 +581,16 @@ class EnhancedSlider extends HTMLElement{
             filter: grayscale(1);
             & > .input-box { pointer-events: none; opacity: 0.4 }
             & > .slider { pointer-events: none; filter: contrast(0.8) opacity(0.5); }
+        }`)
+        css.insertRule(`:host([vertical]){
+            writing-mode: sideways-lr;
+            & > button{ rotate: -90deg; }
+            & .label{
+                height: 0px;
+                width: auto;
+                justify-content: start;
+                margin-inline: 2px;
+            }
         }`)
 
         // user-select needs webkit prefix! 
@@ -610,9 +621,11 @@ class EnhancedSlider extends HTMLElement{
         // width is set by Javascript 
         css.insertRule(`.input-box {
             z-index: 2;
+            writing-mode: horizontal-tb;
             grid-row: 3 / 5;
-            grid-column: 2;        
-            min-width: 4ch;
+            grid-column: 2;
+            justify-self: center;
+            min-inline-size: 4ch;
             text-align: center;
             font-size: 0.9rem;
             padding: 2px;
@@ -637,7 +650,7 @@ class EnhancedSlider extends HTMLElement{
             z-index: 1;
             grid-row: 1/3;
             grid-column: 1;
-            min-width: 0;
+            min-inline-size: 0;
             margin: 0;
             opacity: 0;
             &:focus-visible + .custom-slider-appearance {
@@ -651,7 +664,7 @@ class EnhancedSlider extends HTMLElement{
             grid-column: 2;
             display: grid;
             grid-template-rows: subgrid;
-            margin-inline: 3px;
+            margin-inline: 1px;
             margin-block: 0;
             padding: 0;
             border: 0;
@@ -723,21 +736,22 @@ class EnhancedSlider extends HTMLElement{
             }
             & > .track{
                 grid-area: 1/1;
-                width: 100%;
+                inline-size: 100%;
+                block-size: var(--track-height);
                 box-sizing: border-box;
-                height: var(--track-height);
                 border-radius: var(--track-radius);
                 background: var(--track-background);
                 filter: var(--track-filter);
                 overflow: hidden;
+                position: relative;
                 & > .track-fill{
-                    display: block;
-                    height: 100%;
-                    width: 100%;
+                    position: absolute;
+                    inset-block: 0;
+                    inset-inline-start: 0;
                     background: var(--track-fill-background);
                     filter: var(--track-fill-filter);
-                    will-change: transform;
-                    transition: transform var(--track-transition);
+                    will-change: inset-inline-end;
+                    transition: inset-inline-end var(--track-transition);
                 }
             }
         }`)
@@ -764,6 +778,8 @@ class EnhancedSlider extends HTMLElement{
                 color: gray;
                 user-select: none;
                 -webkit-user-select: none;
+                writing-mode: horizontal-tb;
+                align-items: center;
             }
             & .tick{
                 inline-size: 1px;
