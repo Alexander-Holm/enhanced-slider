@@ -200,6 +200,12 @@ class EnhancedSlider extends HTMLElement{
         this.#handleButtonState()
     }
 
+    // No need to observe this attribute 
+    get vertical(){ return this.hasAttribute("vertical") }
+    // Pretty much any value except false will add the attribute.
+    // This is default behaviour for other HTML elements.
+    set vertical(boolean){ this.toggleAttribute("vertical", boolean) }
+
     #ticks
     get ticks() { return this.#ticks }
     /** @param {"min-max" | "all" | "none" | null} value */
