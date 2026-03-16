@@ -151,21 +151,24 @@
         function openModalCss(event){
             const modal = document.getElementById("example-code-modal")
             const style = event.target.nextElementSibling
-            const codeElement = modal.firstElementChild
+            const codeElement = modal.querySelector("code")
             codeElement.className = "css"
             codeElement.textContent = style.textContent.replaceAll(/ {16}/g, "").trim()
             modal.showModal()
         }
         function openModalHtml(event, newlineAttributes = false){
             const component = event.target.parentElement.querySelector("enhanced-slider")
-            let html = outerHTML.get(component.id)
-            // Clean up outerHtml string.
-            // Only works for the HTML as it is on this page.
+            let html = outerHTML.get(component.id)         
+            // Remove id attribute
+            html = html.replace(/( id=".*?")/g, "")
+            // Boolean attributes as 'disabled' instead of 'disabled=""'
+            html = html.replace('=""', "")
             if(newlineAttributes)
                 html = html.replaceAll(" ", "\n\t").replace("</", "\n</")
+            // Remove whitespace that comes from indentation
             else html = html.replaceAll(/(?<=\n) {12}/g, "")
             const modal = document.getElementById("example-code-modal")
-            const codeElement = modal.firstElementChild
+            const codeElement = modal.querySelector("code")
             codeElement.className = "html"
             codeElement.textContent = html
             modal.showModal()
@@ -247,7 +250,7 @@
             <label for="gradient">Gradient track fill</label>
             <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
             <style>
-                #gradient{
+                .gradient-fill{
                     --c1: #c60053;
                     --c2: #ffa700;
                     --focus-outline: 2px solid var(--c1);
@@ -260,13 +263,13 @@
                     &::part(input-box){ border-color: var(--c2); }
                 }
             </style>
-            <enhanced-slider id="gradient" ticks="none" labels="none"></enhanced-slider>
+            <enhanced-slider id="gradient" class="gradient-fill" ticks="none" labels="none"></enhanced-slider>
         </div>
         <div>
             <label for="thin">Thin track and thumb</label>
             <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
             <style>
-                #thin{
+                .thin{
                     --c1: dodgerblue;
                     &::part(slider){
                         --track-height: 2px;
@@ -280,13 +283,13 @@
                     &::part(input-box){ border-color: var(--c1); }
                 }
             </style>
-            <enhanced-slider id="thin" ticks="none" labels="none"></enhanced-slider>
-        </div>        
+            <enhanced-slider id="thin" class="thin" ticks="none" labels="none"></enhanced-slider>
+        </div>
         <div>
             <label for="repeating-gradient">Repeating gradients</label>
             <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
             <style>
-                #repeating-gradient{
+                .repeating-gradient{
                     &::part(slider){
                         --thumb-width: 2rem;
                         --thumb-height: 2rem;
@@ -315,14 +318,14 @@
                     &::part(input-box){ margin-top: 8px; }
                 }
             </style>
-            <enhanced-slider id="repeating-gradient" ></enhanced-slider>
+            <enhanced-slider id="repeating-gradient" class="repeating-gradient"></enhanced-slider>
         </div>
         <div>
             <label for="custom-button-text">Custom button text</label>
             <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
             <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
             <style>
-                #custom-button-text{
+                .custom-button-text{
                     column-gap: 10px;
                     &::part(button){ 
                         width: auto;
@@ -343,7 +346,7 @@
                     }
                 }
             </style>
-            <enhanced-slider id="custom-button-text">
+            <enhanced-slider id="custom-button-text" class="custom-button-text">
                 <span slot="decrement">Less</span>
                 <span slot="increment">More</span>
             </enhanced-slider>
@@ -354,7 +357,7 @@
             <button class="open-modal-button" onclick="openModalHtml(event)">HTML</button>
             <button class="open-modal-button" onclick="openModalCss(event)">CSS</button>
             <style>
-                #custom-button-icons{
+                .custom-button-icons{
                     &::part(button){ 
                         font-size: 2rem; 
                         transition: 
@@ -369,9 +372,10 @@
                             saturate(1.2)
                             brightness(1.1);
                     }
+                    &::part(tick){ margin-block-start: -0.4rem; }
                 }
             </style>
-            <enhanced-slider id="custom-button-icons">
+            <enhanced-slider id="custom-button-icons" class="custom-button-icons">
                 <!-- https://www.svgrepo.com/svg/209057/happy-emoji -->
                 <svg slot="decrement" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512.001 512.001" xml:space="preserve">
                     <circle style="fill:#F7B239;" cx="256.004" cy="256.004" r="246.855"/>
