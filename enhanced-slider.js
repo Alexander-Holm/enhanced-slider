@@ -789,7 +789,7 @@ class EnhancedSlider extends HTMLElement{
             }
             & .tick{
                 inline-size: 1px;
-                block-size: 6px;
+                block-size: 5px;
                 flex-shrink: 0;
                 background-color: gray;
                 border-radius: 1px;
