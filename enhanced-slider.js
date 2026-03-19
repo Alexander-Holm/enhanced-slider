@@ -200,11 +200,17 @@ class EnhancedSlider extends HTMLElement{
         this.#handleButtonState()
     }
 
-    // No need to observe this attribute 
+    // No need to observe this attribute
     get vertical(){ return this.hasAttribute("vertical") }
     // Pretty much any value except false will add the attribute.
     // This is default behaviour for other HTML elements.
     set vertical(boolean){ this.toggleAttribute("vertical", boolean) }
+
+    // No need to observe this attribute
+    get name(){ return this.getAttribute("name") }
+    // Attribute has to be removed by calling removeAttribute(),
+    // setting property to null will set the name attribute to "null" (a string).
+    set name(string){ this.setAttribute("name", string) }
 
     #ticks
     get ticks() { return this.#ticks }
