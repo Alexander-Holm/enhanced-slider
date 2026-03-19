@@ -27,42 +27,40 @@ console.log(slider.value) // "10"
 
 #### step
 
-+ The interval between allowed numbers
-+ Default: 1
-+ Has to be a number, a string value of "any" is not allowed
+Default: 1  
+The interval between allowed numbers. Has to be a number, a string value of "any" is not allowed.
 
 #### min
-+ Minimum value allowed
-+ Default: 0
+Default: 0  
+Minimum value allowed.
 
 #### max
 
-+ Maximum value allowed
-+ Default: 100
-+ If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can
+Default: 100  
+Maximum value allowed. If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can.
 
 #### value
 
-+ Default: halfway between min and max
-+ If it cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can
-+ Validation:
-    + Values above `max` are set to `max`
-    + Values below `min` are set to `min`
-    + Other invalid values like text are rejected
-+ If `min`, `max`, or `step` contain decimals, `value` will always have decimals as well
-    ```javascript
-    slider.step = 0.25
-    slider.value = 5
-    console.log(slider.value) // "5.00"
-    ```
-+ Like a native `<input>` element, the underlying `value` property does not reflect its value back to the attribute. Do not try to read the value from the attribute.
-    ```javascript
-    let value
-    // Correct
-    value = slider.value
-    // Wrong
-    value = slider.getAttribute("value")
-    ```
+Default: halfway between min and max  
++ Values above `max` are set to `max`
++ Values below `min` are set to `min`
++ If the `value` cannot be reached exactly with steps starting from the `min` value, it will get rounded to a number that can.
++ Other invalid values like text are rejected and the `value` will be set to the last correct one.
+
+If `min`, `max`, or `step` contain decimals, `value` will always have decimals as well
+```javascript
+slider.step = 0.25
+slider.value = 5
+console.log(slider.value) // "5.00"
+```
+Like a native `<input>` element, the underlying `value` property does not reflect its value back to the attribute. Do not try to read the value from the attribute.
+```javascript
+let value
+// Correct
+value = slider.value
+// Wrong
+value = slider.getAttribute("value")
+```
 
 ### Bolean types
 
@@ -84,24 +82,40 @@ console.log(slider.disabled) // true
 
 #### disabled
 
-+ Disables user interaction
-+ Javascript interaction is not disabled
-+ `value` will not be submitted with a form
+Disables user interaction (Javascript interaction is not disabled).  
+`value` will not be submitted with a form.
 
-#### hide-labels
+#### vertical
 
-+ `min` and `max` will not be displayed
+Vertical slider but input-box and labels are kept horizontal. Note that this sets the CSS property `writing-mode: sideways-lr;` so centering with `margin: auto;` might not work.
 
 ### String types
 
+#### name
+
+This name is submitted along with the component's value when the form data is submitted. If there is no name specified, or name is empty, the component's value will not be submitted with the form!
+
 #### ticks
 
-+ Displays vertical markers for a `step`
-+ Allowed values:
-    + "labels"
-    + "all"
-    + "none"
-+ Default: "labels"
+Displays vertical markers for a `step`.
+
++ "min-max" (default)
++ "all"
++ "none"
+
+#### labels
+
+Displays the numbers for a `step`.
+
++ "min-max" (default)
++ "all"
++ "none"
+
+### Events
+
+#### onchange
+
+
 
 ## Style
 
@@ -117,7 +131,6 @@ The component can be selected like any other HTML element using the tag name, a 
 enhanced-slider {
     max-width: 500px;
     margin-inline: auto;
-    accent-color: purple;
 }
 ```
 
