@@ -308,13 +308,13 @@ class EnhancedSlider extends HTMLElement{
         }
     }
 
-    stepUp(){
+    stepUp(count = 1){
         const { value, step, max } = this.#getPropertiesAsNumbers()
-        if(value < max) this.value = value + step
+        if(value < max) this.value = value + (step * count)
     }
-    stepDown(){        
+    stepDown(count = 1){        
         const { value, step, min } = this.#getPropertiesAsNumbers()
-        if(value > min) this.value = value - step
+        if(value > min) this.value = value - (step * count)
     }
     // These should only be called from user events as they dispatch onchange events
     #stepUpContinuous(event){

@@ -111,6 +111,23 @@ Displays the numbers for a `step`.
 + "all"
 + "none"
 
+## Methods
+
+### stepUp()
+
+Increment the `value` by one `step`. The optional parameter `count` can be used to increase the `value` by several steps.
+```javascript
+slider.step = 2
+slider.value = 10
+stepUp()   // 12
+stepUp()   // 14
+stepUp(3)  // 20
+```
+
+### stepDown()
+
+Same as `stepUp()` except the value is decremented.
+
 ### Events
 
 #### onchange
