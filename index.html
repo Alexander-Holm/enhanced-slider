@@ -191,7 +191,7 @@
         <enhanced-slider name="enhanced-slider" id="component-id"></enhanced-slider>
         <fieldset class="browser-defaults">
             <legend>Browser default range & number</legend>
-            <input name="default input range" type="range">
+            <input name="default input range" type="range" value="25">
             <input name="default input number" type="number" value="0">
         </fieldset>
         <p>The current value is submitted with the form as long as the component has a <code>name</code> attribute.</p>
@@ -409,6 +409,76 @@
             </enhanced-slider>
             <script>saveComponentOuterHtml()</script>
         </div>
+    </section>
+
+    <section class="events">
+        <h2>Events</h2>
+        <style>
+            section.events{
+                max-width: 30rem;
+                margin-inline: auto;
+                & > enhanced-slider{ margin-inline: auto; }
+                & > div{
+                    display: flex; 
+                    justify-content: space-evenly;
+                    flex-wrap: wrap;
+                }
+                & output{ margin-inline: 5px;}
+                & h3{ 
+                    font-size: 1rem; 
+                    font-weight: 400;
+                }
+                & ul{
+                    height: 10rem;
+                    overflow-y: scroll;
+                    scrollbar-width: thin;
+                    padding-inline: 10px;
+                    text-align: end;
+                    list-style-type: none;
+                }
+                & > button{
+                    display: block;
+                    margin-inline: auto;
+                }
+            }
+        </style>
+        <script>
+            function addOutput(targetId, event){
+                const output = document.getElementById(targetId)
+                const list = output.children[1]
+                const listItem = document.createElement("li")
+                listItem.textContent = event.detail
+                list.prepend(listItem)
+            }
+            function clearOutput(){
+                const outputs = document.getElementById("event-outputs").children
+                for(const output of outputs){
+                    const list = output.children[1]
+                    list.replaceChildren()
+                }
+            }
+        </script>        
+        <enhanced-slider
+            min="-10" max="10" step="0.5" value="3"
+            onvalueupdate="addOutput('onvalueupdate', event)"
+            oninput="addOutput('oninput', event)"
+            onchange="addOutput('onchange', event)"
+        ></enhanced-slider>
+        <div id="event-outputs">
+            <output id="onvalueupdate">
+                <h3>onvalueupdate</h3>
+                <ul></ul>
+            </output>
+            <output id="oninput">            
+                <h3>oninput</h3>
+                <ul></ul>
+            </output>
+            <output id="onchange">
+                <h3>onchange</h3>
+                <ul></ul>
+            </output>
+        </div>
+        <button onclick="clearOutput()">Clear</button>
     </section>
 </body>
 </html>

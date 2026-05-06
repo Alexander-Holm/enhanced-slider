@@ -1,3 +1,5 @@
+# WIP - documentation might not be up do date!
+
 # enhanced-slider
 
 A web component that combines the functionality of `<input type="range">` and `<input type="number">`.
@@ -130,7 +132,18 @@ Same as `stepUp()` except the value is decremented.
 
 ### Events
 
-#### onchange
+#### valueupdate
+
+Fires when the `value` property is changed through user action. 
+
+#### input
+
+Fires 
+
+#### change
+
+
+
 
 
 

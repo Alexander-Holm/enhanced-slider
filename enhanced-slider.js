@@ -4,7 +4,7 @@ const componentName = "enhanced-slider"
 
 class EnhancedSlider extends HTMLElement{
     static formAssociated = true
-    intervalEmitter = new IntervalEmitter()
+    #intervalEmitter = new IntervalEmitter()
     constructor(){
         super()
         this.connected = false
@@ -23,6 +23,11 @@ class EnhancedSlider extends HTMLElement{
         // that can only happen in connectedCallback()
         this.#configureHTMLElements(inputBox, buttons, sliderContainer)
         this.#addCSS()
+        // Listen to own event to send it using the callback method.
+        // Makes it possible for user to subscribe using:
+        // slider.onvalueupdate = (e) => {console.log("example")}
+        this.addEventListener("valueupdate", e => this.onvalueupdate?.call(this, e))
+        this.#intervalEmitter.onStop = () => this.#handleChangeEvent()
         // For screanreaders.
         // Because there are two focusable elements described by the same outside label
         this.role = "group"
@@ -82,45 +87,60 @@ class EnhancedSlider extends HTMLElement{
     // Everything needs to go through the setters.    
     #value 
     get value(){ return this.#value}
-    set value(newValue){
-        const { inputBox } = this.children
+    set value(newValue){ this.#setValueInternal(newValue, true, false) }
+    #setValueInternal(newValue, updateInputBox = true, dispatchEvent = false){
         newValue = this.#replaceComma(newValue)
         if(this.#isNotNumber(newValue)){
-            inputBox.value = this.#value
+            if(updateInputBox) this.#updateInputBox()
             return
         }
-        
-        // Let slider handle validation of min, max, step
         const { hiddenInputRange } = this.children.sliderContainer
-        hiddenInputRange.value = Number(newValue).toFixed(this.decimalPrecision)
+        // This is needed to not break change event.
+        if(newValue !== hiddenInputRange.value){
+            // Let slider handle validation of min, max, step
+            hiddenInputRange.value = Number(newValue).toFixed(this.decimalPrecision)
+        }
         // Some browsers strip trailing decimals from slider.value, add them again for consistency.
-        this.#value = inputBox.value = inputBox.ariaValueNow = Number(hiddenInputRange.value).toFixed(this.decimalPrecision)
-        this.internals.setFormValue(this.#value)
-        
-        this.#updateSliderPosition()
-        this.#handleButtonState()
-        return
+        newValue = Number(hiddenInputRange.value).toFixed(this.decimalPrecision)
+        if(newValue !== this.#value){
+            this.#value = newValue
+            this.internals.setFormValue(this.#value)
+            this.#handleButtonState()
+            this.#updateSliderPosition()
+            if(dispatchEvent)
+                this.dispatchEvent(new CustomEvent("valueupdate", { detail: this.#value }))
+        }
+        if(updateInputBox) this.#updateInputBox()
+    }
+    // change event should only fire if the value has changed
+    #valueLastChange
+    #handleChangeEvent(){
+        if(this.#value !== this.#valueLastChange){
+            this.#valueLastChange = this.#value
+            this.dispatchEvent(new CustomEvent("change", { detail: this.#value }))
+        }
     }
 
     #min
     get min(){ return this.#min }
     set min(newValue){
         newValue = this.#replaceComma(newValue)
-        if(this.#isNotNumber(newValue) || newValue === this.#min) return
+        if(this.#isNotNumber(newValue) || newValue == this.#min) return
         const { inputBox } = this.children
         const { hiddenInputRange } = this.children.sliderContainer
         hiddenInputRange.min = newValue
         this.#min = inputBox.ariaValueMin = hiddenInputRange.min
         this.setAttribute("min", this.#min)
-        // Max needs to be recalculated so that all steps fit between min and max
-        // Value will be recalculated by max setter if needed.
-        this.max = this.#max
-        const { min, max, value } = this.#getPropertiesAsNumbers()
-        if(min > max) this.max = this.#min
         this.#updateDecimalPrecision()
         this.#handleButtonState()
+        this.#updateSliderPosition()
         this.ticks = this.#ticks
         this.labels = this.#labels
+        const { min, max, value } = this.#getPropertiesAsNumbers()
+        // Max needs to be recalculated so that all steps fit between min and max
+        // Value will be recalculated by max setter if needed.
+        if(min > max) this.max = this.#min
+        else this.max = this.#max
         if(min > value) this.value = this.#min
     } 
 
@@ -150,34 +170,40 @@ class EnhancedSlider extends HTMLElement{
             )
         hiddenInputRange.max = hiddenInputRange.value
         hiddenInputRange.value = sliderOriginalValue
-        this.#max = inputBox.ariaValueMax = hiddenInputRange.max
-        this.setAttribute("max", this.#max)
-        this.#updateDecimalPrecision()
-        this.#handleButtonState()
-        this.ticks = this.#ticks
-        this.labels = this.#labels
-        const { max, value } = this.#getPropertiesAsNumbers()
-        if(value > max) this.value = this.#max
-        // Recalculate to make sure value is a step between min and max
-        else this.value = this.#value
+        if(hiddenInputRange.max !== this.#max){
+            this.#max = inputBox.ariaValueMax = hiddenInputRange.max
+            this.setAttribute("max", this.#max)
+            this.#updateDecimalPrecision()
+            this.#handleButtonState()
+            this.#updateSliderPosition()
+            // Recalculate
+            this.ticks = this.#ticks
+            this.labels = this.#labels
+            this.value = this.#value
+        }
     }
 
     #step
     get step(){ return this.#step }
     set step(newValue){
         newValue = this.#replaceComma(newValue)
-        if(this.#isNotNumber(newValue) || newValue === this.#step) return
+        if(this.#isNotNumber(newValue) || newValue == this.#step) return
         const { hiddenInputRange } = this.children.sliderContainer
         hiddenInputRange.step = newValue
         this.#step = hiddenInputRange.step
         this.setAttribute("step", this.#step)
         // Max needs to be recalculated so that all steps fit between min and max
+        const oldMax = this.max
         this.max = this.#max
-        this.#updateDecimalPrecision()
+        if(oldMax === this.max){
+            // Recalculate to make sure value is a step between min and max.
+            // This only needs to be done when max is not changed.
+            // If max changes it will update value.
+            this.value = this.#value
+        }
         this.ticks = this.#ticks
         this.labels = this.#labels
-        // Recalculate to make sure value is a step between min and max
-        this.value = this.#value
+        this.#updateDecimalPrecision()        
     }
 
     #disabled
@@ -308,28 +334,52 @@ class EnhancedSlider extends HTMLElement{
         }
     }
 
+   
+    // Autocomplete and CustomEvent type for this.addEventListener()
+    /**
+     * @type {{
+     * (
+     *  type: keyof HTMLElementEventMap,
+     *  listener: (event: Event) => void,
+     *  options?: AddEventListenerOptions | boolean
+     * ): void;
+     * (
+     *  type: "valueupdate" | "input" | "change",
+     *  listener: (event: CustomEvent<string>) => void,
+     *  options?: AddEventListenerOptions | boolean
+     * ): void;
+     * }}
+     */
+    addEventListener = (type, listener, options) => {
+        super.addEventListener(type, listener, options)
+    }
+    /** @param {CustomEvent<string>} event */
+    onvalueupdate = (event) => {}
+
+
     stepUp(count = 1){
         const { value, step, max } = this.#getPropertiesAsNumbers()
-        if(value < max) this.value = value + (step * count)
+        if(value < max) this.#setValueInternal(value + (step * count), true, false)
     }
     stepDown(count = 1){        
         const { value, step, min } = this.#getPropertiesAsNumbers()
-        if(value > min) this.value = value - (step * count)
+        if(value > min) this.#setValueInternal(value - (step * count), true, false)
     }
-    // These should only be called from user events as they dispatch onchange events
+    // These should only be called from user interaction as they dispatch events
     #stepUpContinuous(event){
         event.preventDefault()
         const notRepeated = (event.repeat === undefined || event.repeat === false)
         const { value, max } = this.#getPropertiesAsNumbers()
         if(notRepeated && value < max){
             const element = event.currentTarget
-            this.intervalEmitter.start(element, () => {
-                const { value, max } = this.#getPropertiesAsNumbers()
+            this.#intervalEmitter.start(element, () => {
+                const { value, max, step } = this.#getPropertiesAsNumbers()
                 if(value < max){
-                    this.stepUp()
-                    this.dispatchEvent(new Event("change"))
+                    // Don't use stepUp() as an event should be sent from value setter
+                    this.#setValueInternal(value + step, true, true)
+                    this.dispatchEvent(new CustomEvent("input", { detail: this.value}))
                 } 
-                else this.intervalEmitter.stop(element)
+                else this.#intervalEmitter.stop(element)
             })
         }
     }
@@ -339,13 +389,14 @@ class EnhancedSlider extends HTMLElement{
         const { value, min } = this.#getPropertiesAsNumbers()
         if(notRepeated && value > min){
             const element = event.currentTarget
-            this.intervalEmitter.start(element, () => {
-                const { value, min } = this.#getPropertiesAsNumbers()
+            this.#intervalEmitter.start(element, () => {
+                const { value, min, step } = this.#getPropertiesAsNumbers()
                 if(value > min) {
-                    this.stepDown()
-                    this.dispatchEvent(new Event("change"))
+                    // Don't use stepDown() as an event should be sent from value setter
+                    this.#setValueInternal(value - step, true, true)
+                    this.dispatchEvent(new CustomEvent("input", { detail: this.value}))
                 }
-                else this.intervalEmitter.stop(element)
+                else this.#intervalEmitter.stop(element)
             })
         }
     }
@@ -376,12 +427,16 @@ class EnhancedSlider extends HTMLElement{
         this.value ??= (min + max) / 2
         // Used when a <form> parent is reset
         this.defaultValue = this.value
+        this.#valueLastChange = this.value
         
         // These have to be set after min, max, step are guaranteed to have values
         Array("ticks", "labels").forEach(attribute => {
             this[attribute] = this.getAttribute(attribute) ?? "min-max"
-            this[attribute] ??= "min-max"
         })
+
+        const callbackAttribute = this.getAttribute("onvalueupdate")
+        if(callbackAttribute !== null)
+            this.onvalueupdate = () => eval(callbackAttribute)
     }
 
     #getPropertiesAsNumbers(){
@@ -416,7 +471,7 @@ class EnhancedSlider extends HTMLElement{
         if(newCount !== this.decimalPrecision){
             this.decimalPrecision = newCount
             // Force value to have the correct amount of decimals
-            this.#value = this.#value
+            this.value = this.#value
         }
 
         const { min, max } = this.#getPropertiesAsNumbers()
@@ -450,6 +505,10 @@ class EnhancedSlider extends HTMLElement{
             ${((thumb.offsetWidth / 2) - thumbOffset).toFixed(3)}px
         )` 
     }
+    #updateInputBox(){
+        const { inputBox } = this.children
+        inputBox.value = inputBox.ariaValueNow = this.#value
+    }
    
     #configureHTMLElements(inputBox, buttons, sliderContainer){
         const { hiddenInputRange } = sliderContainer
@@ -461,16 +520,25 @@ class EnhancedSlider extends HTMLElement{
         inputBox.role = "spinbutton"
         inputBox.className = inputBox.part = "input-box"
 
-        hiddenInputRange.onkeyup = hiddenInputRange.onblur = () => this.intervalEmitter.stop(hiddenInputRange)
-        inputBox.onkeyup = inputBox.onblur = () => this.intervalEmitter.stop(inputBox)
-        // Handle dragging slider and writing in inputBox
-        // inputBox should not be oninput,
-        // the validation might reset the input as you are typing.
-        hiddenInputRange.oninput = inputBox.onchange = (event) => {
-            this.value = event.currentTarget.value
-            this.dispatchEvent(new Event("change"))
+        hiddenInputRange.oninput = (event) => {
+            // input-event has composed=true so events of 
+            // internal children can be listened to from outside the component.
+            // change-event does not do this!
+            // To get the same behavior for both events stop input-event propagation
+            // and then send a new CustomEvent.
+            event.stopPropagation()
+            this.dispatchEvent(new CustomEvent("input", { detail: event.currentTarget.value }))
+            this.#setValueInternal(event.currentTarget.value, true, true)
         }
-        // Handle keyboard
+        inputBox.oninput = (event) => {
+            event.stopPropagation()
+            this.dispatchEvent(new CustomEvent("input", { detail: event.currentTarget.value }))
+            this.#setValueInternal(event.currentTarget.value, false, true)
+        }
+        hiddenInputRange.onchange = inputBox.onchange = (event) => {
+            this.#setValueInternal(event.currentTarget.value, true, true)
+            this.#handleChangeEvent()
+        }
         hiddenInputRange.onkeydown = (event) => {
             switch(event.key){
                 case "ArrowUp":
@@ -489,6 +557,9 @@ class EnhancedSlider extends HTMLElement{
                 case "ArrowDown": this.#stepDownContinuous(event); break;
             }
         }
+        
+        hiddenInputRange.onkeyup = hiddenInputRange.onblur = () => this.#intervalEmitter.stop(hiddenInputRange)
+        inputBox.onkeyup = inputBox.onblur = () => this.#intervalEmitter.stop(inputBox)
 
         const { decrement, increment } = buttons
         decrement.part = "button decrement"
@@ -515,8 +586,8 @@ class EnhancedSlider extends HTMLElement{
         increment.onpointerup = increment.onpointerleave = increment.onpointercancel = (event) => {
             //Don't stop the interval when hovering a button if that button is not what started it.
             const button = event.currentTarget
-            if(this.intervalEmitter.currentUser === button){
-                this.intervalEmitter.stop(button)
+            if(this.#intervalEmitter.currentUser === button){
+                this.#intervalEmitter.stop(button)
                 inputBox.focus()
             }
         } 
@@ -810,6 +881,7 @@ class IntervalEmitter{
     intervals = [200, 150, 100, 100, 60, 60, 30]
     intervalIndex = 0
     onInterval = null
+    onStop = null
     timerId = null
     currentUser = null
     stop = (caller) => {
@@ -819,6 +891,7 @@ class IntervalEmitter{
         this.intervalIndex = 0
         this.onInterval = null
         this.currentUser = null
+        this.onStop?.call()
     }
     start = (caller, onInterval) => {
         if(this.timerId !== null) this.stop(this.currentUser)
