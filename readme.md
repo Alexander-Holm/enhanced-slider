@@ -130,19 +130,23 @@ stepUp(3)  // 20
 
 Same as `stepUp()` except the value is decremented.
 
-### Events
+## Events
 
-#### valueupdate
+Regular HTML events like `focus` or `blur` works the same as with any native element.
 
-Fires when the `value` property is changed through user action. 
+There are three custom events where the `event.detail` property will contain the event value as a string.
 
-#### input
+### valueupdate
 
-Fires 
+Fires when the `value` property is set through user action, and after validation `value` has changed. The new `value` can be read through `event.detail` or `event.target.value`. 
 
-#### change
+### input
 
+Fires on any user input. `event.detail` contains the current value of the control the user interacted with. This is not guaranteed to be valid or correctly formatted! 
 
+### change
+
+Fires after the user stops interacting with any control and the `value` has changed. For the slider and buttons this is when they are let go. The input-box fires the event after it loses focus. `event.detail` contains the new `value`.
 
 
 
